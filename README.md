@@ -1,36 +1,123 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Orbit
 
-## Getting Started
+A Discord-style MVP with real-time voice and text chat, built with security-first principles.
 
-First, run the development server:
+## Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Node.js (latest stable version)
+- pnpm
+- Supabase account and project
+- LiveKit account and project
+
+## Setup
+
+1. Clone the repository:
+
+   ```bash
+   git clone <repository-url>
+   cd orbit
+   ```
+
+2. Install dependencies:
+
+   ```bash
+   pnpm install
+   ```
+
+3. Create a `.env.local` file based on `.env.example` and provide the necessary values:
+
+   ```bash
+   cp .env.example .env.local
+   ```
+
+4. Run the development server:
+
+   ```bash
+   pnpm dev
+   ```
+
+5. Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+## Environment Variables
+
+### Required Variables
+
+- `NEXT_PUBLIC_SUPABASE_URL`: Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Supabase anonymous key
+- `SUPABASE_SERVICE_ROLE_KEY`: Supabase service role key (server only)
+- `LIVEKIT_API_KEY`: LiveKit API key
+- `LIVEKIT_API_SECRET`: LiveKit API secret
+- `LIVEKIT_WS_URL`: LiveKit WebSocket URL (e.g., wss://your-project.livekit.cloud)
+- `APP_URL`: Application URL (e.g., http://localhost:3000)
+- `NODE_ENV`: Environment mode (`development`, `production`, `test`)
+
+## Scripts
+
+- `pnpm dev` - Start development server
+- `pnpm build` - Build for production
+- `pnpm start` - Start production server
+- `pnpm lint` - Run ESLint
+- `pnpm lint:fix` - Fix ESLint issues
+- `pnpm format` - Format code with Prettier
+- `pnpm format:check` - Check code formatting
+- `pnpm typecheck` - Run TypeScript type checking
+- `pnpm test` - Run unit tests
+- `pnpm test:e2e` - Run end-to-end tests
+
+## Tech Stack
+
+- **Framework**: Next.js 15 (App Router) + TypeScript (strict)
+- **UI**: Tailwind CSS + shadcn/ui
+- **State**: React + server actions/route handlers
+- **Realtime Voice**: LiveKit (React components + client)
+- **Backend/BaaS**: Supabase (Auth, Realtime, Storage)
+- **Desktop**: Tauri wrapper
+- **Tooling**: pnpm, ESLint, Prettier, Vitest, Playwright, Zod
+
+## Security Features
+
+- No secrets client-side
+- Environment variable validation with Zod
+- Input validation on all API endpoints
+- Rate limiting for sensitive endpoints
+- Secure headers (CSP, HSTS, etc.)
+- Pre-commit hooks for code quality
+
+## Project Structure
+
+```
+src/
+├── app/                 # Next.js App Router
+│   ├── api/            # API routes
+│   ├── (auth)/         # Auth pages
+│   └── (dashboard)/    # Main app pages
+├── lib/                # Utilities and configurations
+│   ├── env.ts         # Environment validation
+│   └── utils.ts       # Utility functions
+└── components/         # Reusable UI components
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Development
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+This project follows strict security and code quality standards:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- TypeScript strict mode enabled
+- ESLint with security plugins
+- Prettier for code formatting
+- Pre-commit hooks for quality gates
+- Comprehensive input validation
+- Rate limiting on sensitive endpoints
 
-## Learn More
+## Troubleshooting
 
-To learn more about Next.js, take a look at the following resources:
+### Environment Variables
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+If you encounter environment validation errors, ensure all required variables are set in your `.env.local` file and match the expected format.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### TypeScript Errors
 
-## Deploy on Vercel
+Run `pnpm typecheck` to identify TypeScript issues. The project uses strict mode, so all types must be explicitly defined.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Linting Issues
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Run `pnpm lint:fix` to automatically fix most ESLint issues. For security-related warnings, review the code and ensure proper validation is in place.

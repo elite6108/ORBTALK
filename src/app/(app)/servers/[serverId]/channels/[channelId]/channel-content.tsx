@@ -1,6 +1,5 @@
 'use client';
 
-import { useAuth } from '@/lib/auth/context';
 import { useChannelMessages, useTypingIndicator } from '@/lib/chat/hooks';
 import { MessageList } from '@/components/chat/message-list';
 import { MessageInput } from '@/components/chat/message-input';
@@ -15,7 +14,7 @@ interface ChannelContentProps {
 }
 
 export function ChannelContent({ serverId, channelId, user }: ChannelContentProps) {
-  const { messages, loading, error, addOptimisticMessage } = useChannelMessages(channelId);
+  const { messages, loading, error, channelName, serverName, addOptimisticMessage } = useChannelMessages(channelId);
   const { typingUsers, startTyping, stopTyping } = useTypingIndicator(channelId, user.id);
 
   const handleMessageSent = (message: any) => {
@@ -38,10 +37,13 @@ export function ChannelContent({ serverId, channelId, user }: ChannelContentProp
   return (
     <div className="flex-1 flex flex-col bg-white">
       {/* Channel Header */}
-      <div className="h-12 border-b border-gray-200 flex items-center justify-between px-4 bg-white">
-        <div className="flex items-center space-x-2">
-          <span className="text-gray-500">#</span>
-          <span className="font-semibold text-gray-900">general</span>
+      <div className="h-16 border-b border-gray-200 flex items-center justify-between px-6 bg-white">
+        <div className="flex flex-col">
+          <span className="text-xs uppercase tracking-wide text-gray-400">{serverName || 'Server'}</span>
+          <div className="flex items-center space-x-2">
+            <span className="text-gray-500">#</span>
+            <span className="font-semibold text-gray-900 text-lg capitalize">{channelName || 'Channel'}</span>
+          </div>
         </div>
         <div className="flex items-center space-x-2">
           <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -67,13 +69,16 @@ export function ChannelContent({ serverId, channelId, user }: ChannelContentProp
       </div>
       
       {/* Message Input */}
-      <MessageInput
-        channelId={channelId}
-        onMessageSent={handleMessageSent}
-        onTypingStart={startTyping}
-        onTypingStop={stopTyping}
-        currentUserId={user.id}
-      />
+      <div className="border-t border-gray-200 bg-white">
+        <MessageInput
+          channelId={channelId}
+          channelName={channelName}
+          onMessageSent={handleMessageSent}
+          onTypingStart={startTyping}
+          onTypingStop={stopTyping}
+          currentUserId={user.id}
+        />
+      </div>
     </div>
   );
 }

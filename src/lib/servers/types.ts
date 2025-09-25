@@ -25,6 +25,13 @@ export interface Channel {
   message_count: number;
 }
 
+export interface ChannelInfo {
+  id: string;
+  server_id: string;
+  name: string;
+  server_name: string | null;
+}
+
 export interface CreateServerData {
   name: string;
   description?: string;

@@ -244,10 +244,19 @@ export async function editMessage(messageId: string, newContent: string): Promis
  * Get messages for a channel
  */
 export async function getChannelMessages(
-  channelId: string, 
-  limit: number = 50, 
+  channelId: string,
+  limit: number = 50,
   offset: number = 0
-): Promise<{ error: string | null; messages?: Message[] }> {
+): Promise<{
+  error: string | null;
+  messages?: Message[];
+  channel?: {
+    id: string;
+    name: string;
+    server_id: string;
+    server_name: string | null;
+  };
+}> {
   try {
     // Get current user to verify authentication
     const userData = await getCurrentUserAction();
@@ -269,6 +278,12 @@ export async function getChannelMessages(
       console.error('Channel not found:', channelError);
       return { error: `Channel not found: ${channelError.message}` };
     }
+
+    const { data: server } = await adminSupabase
+      .from('servers')
+      .select('name')
+      .eq('id', channel.server_id)
+      .single();
 
     // Check if user is a member of the server
     const { data: membership, error: membershipError } = await adminSupabase
@@ -304,7 +319,16 @@ export async function getChannelMessages(
       return { error: `Failed to fetch messages: ${error.message}` };
     }
 
-    return { error: null, messages: messages || [] };
+    return {
+      error: null,
+      messages: messages || [],
+      channel: {
+        id: channel.id,
+        name: channel.name,
+        server_id: channel.server_id,
+        server_name: server?.name ?? null,
+      },
+    };
   } catch (error) {
     console.error('Unexpected error fetching messages:', error);
     return { error: `An unexpected error occurred: ${error instanceof Error ? error.message : 'Unknown error'}` };

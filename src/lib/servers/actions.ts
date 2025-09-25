@@ -425,7 +425,7 @@ export async function getFirstChannel(serverId: string): Promise<{ error: string
 /**
  * Get channels for a server
  */
-export async function getServerChannels(serverId: string): Promise<{ error: string | null; channels?: any[] }> {
+export async function getServerChannels(serverId: string): Promise<{ error: string | null; channels?: Channel[] }> {
   try {
     const userData = await getCurrentUserAction();
     if (!userData) {
@@ -437,7 +437,7 @@ export async function getServerChannels(serverId: string): Promise<{ error: stri
 
     const { data: channels, error } = await adminSupabase
       .from('channels')
-      .select('*')
+      .select('id, server_id, name')
       .eq('server_id', serverId)
       .order('position', { ascending: true });
 

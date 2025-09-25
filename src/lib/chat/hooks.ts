@@ -10,6 +10,8 @@ import type { Message, TypingUser } from './types';
  */
 export function useChannelMessages(channelId: string) {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [channelName, setChannelName] = useState<string>('');
+  const [serverName, setServerName] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
@@ -19,7 +21,7 @@ export function useChannelMessages(channelId: string) {
       setLoading(true);
       setError(null);
 
-      const { error: fetchError, messages } = await getChannelMessages(channelId, 50, 0);
+      const { error: fetchError, messages, channel } = await getChannelMessages(channelId, 50, 0);
 
       if (fetchError) {
         console.error('Error fetching messages:', fetchError);
@@ -28,6 +30,8 @@ export function useChannelMessages(channelId: string) {
       }
 
       setMessages(messages || []);
+      setChannelName(channel?.name || '');
+      setServerName(channel?.server_name || '');
     } catch (err) {
       console.error('Unexpected error fetching messages:', err);
       setError('An unexpected error occurred');
@@ -114,6 +118,9 @@ export function useChannelMessages(channelId: string) {
     messages,
     loading,
     error,
+    channelName,
+    serverName,
+    serverName,
     addOptimisticMessage,
     updateOptimisticMessage,
     removeOptimisticMessage,

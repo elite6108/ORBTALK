@@ -9,6 +9,8 @@ import type { Message } from '@/lib/chat/types';
 
 interface MessageInputProps {
   channelId: string;
+  channelName?: string;
+  currentUserId?: string;
   onMessageSent?: (message: Message) => void;
   onTypingStart?: () => void;
   onTypingStop?: () => void;
@@ -16,6 +18,8 @@ interface MessageInputProps {
 
 export function MessageInput({ 
   channelId, 
+  channelName,
+  currentUserId,
   onMessageSent, 
   onTypingStart, 
   onTypingStop 
@@ -122,7 +126,7 @@ export function MessageInput({
           value={content}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          placeholder={`Message #${channelId}`}
+          placeholder={`Message #${channelName || channelId}`}
           className="flex-1"
           disabled={isLoading}
           maxLength={2000}

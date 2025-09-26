@@ -2,6 +2,7 @@
 
 import { useChannelMessages, useTypingIndicator } from '@/lib/chat/hooks';
 import { MessageList } from '@/components/chat/message-list';
+import { VoiceChannelContent } from '@/components/chat/voice-channel-content';
 import { MessageInput } from '@/components/chat/message-input';
 import { Button } from '@/components/ui/button';
 import { Phone, Video, Info } from 'lucide-react';
@@ -58,15 +59,20 @@ export function ChannelContent({ serverId, channelId, user }: ChannelContentProp
         </div>
       </div>
 
-      {/* Messages Area */}
+      {/* Channel Body */}
       <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-        <MessageList
-          messages={messages}
-          typingUsers={typingUsers}
-          currentUserId={user.id}
-          loading={loading}
-          onDeleteMessage={() => { /* handled in MessageItem via server action */ }}
-        />
+        {/* TODO: Replace heuristic with actual channel type if available */}
+        {channelName && channelName.toLowerCase && channelName.toLowerCase().includes('voice') ? (
+          <VoiceChannelContent serverId={serverId} channelId={channelId} />
+        ) : (
+          <MessageList
+            messages={messages}
+            typingUsers={typingUsers}
+            currentUserId={user.id}
+            loading={loading}
+            onDeleteMessage={() => {}}
+          />
+        )}
       </div>
       
       {/* Message Input */}

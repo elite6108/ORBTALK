@@ -20,6 +20,7 @@ import {
   Search
 } from 'lucide-react';
 import Link from 'next/link';
+import { useMemo } from 'react';
 
 interface AppSidebarProps {
   user: any;
@@ -250,19 +251,22 @@ export function AppSidebar({ user }: AppSidebarProps) {
                     <ChevronDown className="h-4 w-4 mr-1" />
                     Voice Channels
                   </div>
-                  <div className="space-y-1 mt-1">
+                  <div className="space-y-2 mt-1">
                     {channels.filter(c => c.type === 'voice').map((channel) => (
-                      <Link
-                        key={channel.id}
-                        href={`/servers/${selectedServer.id}/channels/${channel.id}`}
-                        className="flex items-center justify-between px-2 py-1.5 text-gray-300 hover:text-white hover:bg-gray-700 rounded group"
-                      >
-                        <div className="flex items-center min-w-0">
-                          <Volume2 className="h-4 w-4 mr-1.5 text-gray-400" />
-                          <span className="truncate">{channel.name}</span>
-                        </div>
-                        <DeleteChannelButton channelId={channel.id} serverId={selectedServer.id} onDeleted={() => fetchChannels(selectedServer.id)} />
-                      </Link>
+                      <div key={channel.id} className="">
+                        <Link
+                          href={`/servers/${selectedServer.id}/channels/${channel.id}`}
+                          className="flex items-center justify-between px-2 py-1.5 text-gray-300 hover:text-white hover:bg-gray-700 rounded group"
+                        >
+                          <div className="flex items-center min-w-0">
+                            <Volume2 className="h-4 w-4 mr-1.5 text-gray-400" />
+                            <span className="truncate">{channel.name}</span>
+                          </div>
+                          <DeleteChannelButton channelId={channel.id} serverId={selectedServer.id} onDeleted={() => fetchChannels(selectedServer.id)} />
+                        </Link>
+                        {/* Inline participants */}
+                        <VoiceInlineParticipants serverId={selectedServer.id} channelId={channel.id} />
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -309,5 +313,53 @@ function ChevronDown({ className }: { className?: string }) {
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
     </svg>
+  );
+}
+
+function VoiceInlineParticipants({ serverId, channelId }: { serverId: string; channelId: string }) {
+  const [people, setPeople] = useState<{ id: string; name: string; audioEnabled: boolean }[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const load = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch('/api/livekit/participants', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ serverId, channelId }),
+      });
+      const data = await res.json();
+      setPeople(data.participants || []);
+    } catch (e) {
+      setPeople([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+    const t = setInterval(load, 5000);
+    return () => clearInterval(t);
+  }, [serverId, channelId]);
+
+  if (loading && people.length === 0) {
+    return <div className="px-8 py-1 text-xs text-gray-500">Checking…</div>;
+  }
+  if (people.length === 0) {
+    return null;
+  }
+  return (
+    <div className="pl-8 pr-2 pb-1 flex flex-wrap gap-x-2 gap-y-1 text-xs text-gray-400">
+      {people.slice(0, 6).map((p) => (
+        <div key={p.id} className="flex items-center gap-1">
+          <div className={`h-2 w-2 rounded-full ${p.audioEnabled ? 'bg-green-500' : 'bg-gray-500'}`} />
+          <span className="truncate max-w-[100px]">{p.name}</span>
+        </div>
+      ))}
+      {people.length > 6 && (
+        <span>+{people.length - 6}</span>
+      )}
+    </div>
   );
 }

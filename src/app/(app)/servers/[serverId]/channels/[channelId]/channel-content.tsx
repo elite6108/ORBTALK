@@ -65,6 +65,7 @@ export function ChannelContent({ serverId, channelId, user }: ChannelContentProp
           typingUsers={typingUsers}
           currentUserId={user.id}
           loading={loading}
+          onDeleteMessage={() => { /* handled in MessageItem via server action */ }}
         />
       </div>
       

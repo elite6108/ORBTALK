@@ -268,11 +268,17 @@ export async function leaveServer(serverId: string): Promise<{ error: string | n
 export async function createChannel(data: CreateChannelData): Promise<{ error: string | null; channel?: Channel }> {
   try {
     const supabase = await createClient();
+    const adminSupabase = createAdminClient();
     
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError || !user) {
+
+    if (authError) {
+      console.error('Auth check failed while creating channel:', authError);
+      return { error: 'Temporary authentication issue. Please try again.' };
+    }
+
+    if (!user) {
       return { error: 'You must be signed in to create a channel.' };
     }
 
@@ -286,7 +292,8 @@ export async function createChannel(data: CreateChannelData): Promise<{ error: s
     }
 
     // Check if user has permission to create channels (admin, moderator, or owner)
-    const { data: member, error: memberError } = await supabase
+    // Use admin client to avoid any RLS issues
+    const { data: member, error: memberError } = await adminSupabase
       .from('server_members')
       .select('role')
       .eq('server_id', data.server_id)
@@ -302,7 +309,7 @@ export async function createChannel(data: CreateChannelData): Promise<{ error: s
     }
 
     // Get next position
-    const { data: lastChannel } = await supabase
+    const { data: lastChannel } = await adminSupabase
       .from('channels')
       .select('position')
       .eq('server_id', data.server_id)
@@ -313,7 +320,7 @@ export async function createChannel(data: CreateChannelData): Promise<{ error: s
     const nextPosition = (lastChannel?.position || -1) + 1;
 
     // Create channel
-    const { data: channel, error: insertError } = await supabase
+    const { data: channel, error: insertError } = await adminSupabase
       .from('channels')
       .insert({
         server_id: data.server_id,
@@ -322,7 +329,6 @@ export async function createChannel(data: CreateChannelData): Promise<{ error: s
         description: data.description?.trim() || null,
         position: nextPosition,
         is_private: data.is_private || false,
-        message_count: 0,
       })
       .select()
       .single();
@@ -337,6 +343,62 @@ export async function createChannel(data: CreateChannelData): Promise<{ error: s
     return { error: null, channel };
   } catch (error) {
     console.error('Unexpected error creating channel:', error);
+    return { error: 'An unexpected error occurred. Please try again.' };
+  }
+}
+
+/**
+ * Delete a channel from a server
+ */
+export async function deleteChannel(channelId: string): Promise<{ error: string | null }> {
+  try {
+    const supabase = await createClient();
+
+    // Get current user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return { error: 'You must be signed in to delete a channel.' };
+    }
+
+    // Find channel and server id
+    const adminSupabase = createAdminClient();
+    const { data: channel, error: fetchError } = await adminSupabase
+      .from('channels')
+      .select('id, server_id')
+      .eq('id', channelId)
+      .single();
+
+    if (fetchError || !channel) {
+      return { error: 'Channel not found.' };
+    }
+
+    // Check permission (owner/admin/moderator)
+    const { data: member, error: memberError } = await adminSupabase
+      .from('server_members')
+      .select('role')
+      .eq('server_id', channel.server_id)
+      .eq('user_id', user.id)
+      .single();
+
+    if (memberError || !member || !['owner','admin','moderator'].includes(member.role)) {
+      return { error: 'You do not have permission to delete channels.' };
+    }
+
+    const { error: delError } = await adminSupabase
+      .from('channels')
+      .delete()
+      .eq('id', channelId);
+
+    if (delError) {
+      console.error('Error deleting channel:', delError);
+      return { error: 'Failed to delete channel. Please try again.' };
+    }
+
+    revalidatePath(`/servers/${channel.server_id}`);
+    return { error: null };
+  } catch (error) {
+    console.error('Unexpected error deleting channel:', error);
     return { error: 'An unexpected error occurred. Please try again.' };
   }
 }
@@ -437,7 +499,7 @@ export async function getServerChannels(serverId: string): Promise<{ error: stri
 
     const { data: channels, error } = await adminSupabase
       .from('channels')
-      .select('id, server_id, name, type, description')
+      .select('*')
       .eq('server_id', serverId)
       .order('position', { ascending: true });
 

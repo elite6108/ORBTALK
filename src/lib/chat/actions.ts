@@ -104,16 +104,17 @@ export async function sendMessage(data: SendMessageData): Promise<{ error: strin
 export async function deleteMessage(messageId: string): Promise<{ error: string | null }> {
   try {
     const supabase = await createClient();
-    
+    const adminSupabase = createAdminClient();
+
     // Get current user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
+
     if (authError || !user) {
       return { error: 'You must be signed in to delete messages.' };
     }
 
-    // Get the message to check ownership
-    const { data: message, error: fetchError } = await supabase
+    // Load message with admin client
+    const { data: message, error: fetchError } = await adminSupabase
       .from('messages')
       .select('user_id, channel_id, server_id')
       .eq('id', messageId)
@@ -123,25 +124,25 @@ export async function deleteMessage(messageId: string): Promise<{ error: string 
       return { error: 'Message not found.' };
     }
 
-    // Check if user owns the message or is admin
-    const { data: userProfile } = await supabase
-      .from('users')
-      .select('is_admin')
-      .eq('id', user.id)
-      .single();
+    // Ownership or server role check
+    if (message.user_id !== user.id) {
+      const { data: membership } = await adminSupabase
+        .from('server_members')
+        .select('role')
+        .eq('server_id', message.server_id)
+        .eq('user_id', user.id)
+        .single();
 
-    if (message.user_id !== user.id && !userProfile?.is_admin) {
-      return { error: 'You can only delete your own messages.' };
+      const canModerate = membership && ['owner','admin','moderator'].includes(membership.role);
+      if (!canModerate) {
+        return { error: 'You can only delete your own messages.' };
+      }
     }
 
-    // Soft delete the message
-    const { error: deleteError } = await supabase
+    // Hard delete so realtime sends DELETE and removes it for all viewers
+    const { error: deleteError } = await adminSupabase
       .from('messages')
-      .update({ 
-        is_deleted: true,
-        content: '[Message deleted]',
-        updated_at: new Date().toISOString()
-      })
+      .delete()
       .eq('id', messageId);
 
     if (deleteError) {
@@ -150,7 +151,6 @@ export async function deleteMessage(messageId: string): Promise<{ error: string 
     }
 
     revalidatePath(`/servers/${message.server_id}/channels/${message.channel_id}`);
-    
     return { error: null };
   } catch (error) {
     console.error('Unexpected error deleting message:', error);

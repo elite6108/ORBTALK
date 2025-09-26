@@ -10,9 +10,10 @@ interface MessageListProps {
   typingUsers: TypingUser[];
   currentUserId: string;
   loading?: boolean;
+  onDeleteMessage?: (id: string) => void;
 }
 
-export function MessageList({ messages, typingUsers, currentUserId, loading }: MessageListProps) {
+export function MessageList({ messages, typingUsers, currentUserId, loading, onDeleteMessage }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -47,6 +48,7 @@ export function MessageList({ messages, typingUsers, currentUserId, loading }: M
               key={message.id}
               message={message}
               isOwn={message.user_id === currentUserId}
+              onDelete={onDeleteMessage}
             />
           ))}
           {typingUsers.length > 0 && (

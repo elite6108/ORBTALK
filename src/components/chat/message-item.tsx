@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { MessageActions } from './message-actions';
+import { deleteMessage } from '@/lib/chat/actions';
 import { MessageReactions } from './message-reactions';
 import { getInitials } from '@/lib/utils';
 import { MoreHorizontal, Edit, Trash2, Reply } from 'lucide-react';
@@ -13,9 +14,10 @@ import type { Message } from '@/lib/chat/types';
 interface MessageItemProps {
   message: Message;
   isOwn: boolean;
+  onDelete?: (id: string) => void;
 }
 
-export function MessageItem({ message, isOwn }: MessageItemProps) {
+export function MessageItem({ message, isOwn, onDelete }: MessageItemProps) {
   const [showActions, setShowActions] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
@@ -44,6 +46,10 @@ export function MessageItem({ message, isOwn }: MessageItemProps) {
   const handleSaveEdit = async () => {
     // This will be implemented with the edit action
     setIsEditing(false);
+  };
+
+  const handleDelete = async () => {
+    await deleteMessage(message.id);
   };
 
   return (
@@ -122,8 +128,9 @@ export function MessageItem({ message, isOwn }: MessageItemProps) {
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => {/* Implement delete */}}
+            onClick={handleDelete}
             className="h-6 w-6 p-0"
+            title="Delete message"
           >
             <Trash2 className="h-3 w-3" />
           </Button>

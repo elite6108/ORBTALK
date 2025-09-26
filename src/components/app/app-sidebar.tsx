@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { UserMenu } from '@/components/auth/user-menu';
 import { CreateServerDialog } from '@/components/servers/create-server-dialog';
+import { CreateChannelDialog } from '@/components/servers/create-channel-dialog';
+import { DeleteChannelButton } from '@/components/servers/delete-channel-button';
 import { getUserServers, getFirstChannel, getServerChannels } from '@/lib/servers/actions';
 import type { Server } from '@/lib/servers/types';
 import {
@@ -206,6 +208,16 @@ export function AppSidebar({ user }: AppSidebarProps) {
             </div>
           ) : (
             <>
+              <div className="px-2 pt-2 pb-3 flex items-center justify-between">
+                <div className="flex items-center text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                  <ChevronDown className="h-4 w-4 mr-1" />
+                  Channels
+                </div>
+                {selectedServer && (
+                  <CreateChannelDialog serverId={selectedServer.id} onCreated={() => fetchChannels(selectedServer.id)} />
+                )}
+              </div>
+
               {/* Text Channels */}
               {channels.filter(c => c.type === 'text').length > 0 && (
                 <div className="px-2 py-2">
@@ -218,10 +230,13 @@ export function AppSidebar({ user }: AppSidebarProps) {
                       <Link
                         key={channel.id}
                         href={`/servers/${selectedServer.id}/channels/${channel.id}`}
-                        className="flex items-center px-2 py-1.5 text-gray-300 hover:text-white hover:bg-gray-700 rounded group"
+                        className="flex items-center justify-between px-2 py-1.5 text-gray-300 hover:text-white hover:bg-gray-700 rounded group"
                       >
-                        <Hash className="h-4 w-4 mr-1.5 text-gray-400" />
-                        <span className="flex-1 truncate">{channel.name}</span>
+                        <div className="flex items-center min-w-0">
+                          <Hash className="h-4 w-4 mr-1.5 text-gray-400" />
+                          <span className="truncate">{channel.name}</span>
+                        </div>
+                        <DeleteChannelButton channelId={channel.id} serverId={selectedServer.id} onDeleted={() => fetchChannels(selectedServer.id)} />
                       </Link>
                     ))}
                   </div>
@@ -240,10 +255,13 @@ export function AppSidebar({ user }: AppSidebarProps) {
                       <Link
                         key={channel.id}
                         href={`/servers/${selectedServer.id}/channels/${channel.id}`}
-                        className="flex items-center px-2 py-1.5 text-gray-300 hover:text-white hover:bg-gray-700 rounded group"
+                        className="flex items-center justify-between px-2 py-1.5 text-gray-300 hover:text-white hover:bg-gray-700 rounded group"
                       >
-                        <Volume2 className="h-4 w-4 mr-1.5 text-gray-400" />
-                        <span className="flex-1 truncate">{channel.name}</span>
+                        <div className="flex items-center min-w-0">
+                          <Volume2 className="h-4 w-4 mr-1.5 text-gray-400" />
+                          <span className="truncate">{channel.name}</span>
+                        </div>
+                        <DeleteChannelButton channelId={channel.id} serverId={selectedServer.id} onDeleted={() => fetchChannels(selectedServer.id)} />
                       </Link>
                     ))}
                   </div>

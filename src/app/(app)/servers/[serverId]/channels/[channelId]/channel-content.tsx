@@ -35,7 +35,7 @@ export function ChannelContent({ serverId, channelId, user }: ChannelContentProp
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-white">
+    <div className="h-full min-h-0 flex flex-col bg-white">
       {/* Channel Header */}
       <div className="h-16 border-b border-gray-200 flex items-center justify-between px-6 bg-white">
         <div className="flex flex-col">
@@ -59,7 +59,7 @@ export function ChannelContent({ serverId, channelId, user }: ChannelContentProp
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
         <MessageList
           messages={messages}
           typingUsers={typingUsers}
@@ -69,7 +69,7 @@ export function ChannelContent({ serverId, channelId, user }: ChannelContentProp
       </div>
       
       {/* Message Input */}
-      <div className="border-t border-gray-200 bg-white">
+      <div className="sticky bottom-0 z-10 border-t border-gray-200 bg-white">
         <MessageInput
           channelId={channelId}
           channelName={channelName}

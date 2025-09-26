@@ -437,7 +437,7 @@ export async function getServerChannels(serverId: string): Promise<{ error: stri
 
     const { data: channels, error } = await adminSupabase
       .from('channels')
-      .select('id, server_id, name')
+      .select('id, server_id, name, type, description')
       .eq('server_id', serverId)
       .order('position', { ascending: true });
 

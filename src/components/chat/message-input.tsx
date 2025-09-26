@@ -104,19 +104,22 @@ export function MessageInput({
   }, []);
 
   return (
-    <div className="border-t border-border p-4">
+    <div className="border-t border-gray-200 bg-white px-6 py-3">
       {error && (
         <div className="mb-2 text-sm text-red-600 bg-red-50 p-2 rounded">
           {error}
         </div>
       )}
       
-      <form onSubmit={handleSubmit} className="flex items-center space-x-2">
+      <form
+        onSubmit={handleSubmit}
+        className="flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2 shadow"
+      >
         <Button
           type="button"
           variant="ghost"
           size="icon"
-          className="h-8 w-8"
+          className="h-9 w-9 rounded-full text-gray-500 hover:text-gray-700"
         >
           <Paperclip className="h-4 w-4" />
         </Button>
@@ -127,7 +130,7 @@ export function MessageInput({
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           placeholder={`Message #${channelName || channelId}`}
-          className="flex-1"
+          className="flex-1 border-0 px-1 py-0 text-sm shadow-none focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
           disabled={isLoading}
           maxLength={2000}
         />
@@ -136,7 +139,7 @@ export function MessageInput({
           type="button"
           variant="ghost"
           size="icon"
-          className="h-8 w-8"
+          className="h-9 w-9 rounded-full text-gray-500 hover:text-gray-700"
         >
           <Smile className="h-4 w-4" />
         </Button>
@@ -145,17 +148,12 @@ export function MessageInput({
           type="submit"
           size="icon"
           disabled={!content.trim() || isLoading}
-          className="h-8 w-8"
+          className="h-9 w-9 rounded-full bg-indigo-600 text-white hover:bg-indigo-700"
         >
           <Send className="h-4 w-4" />
         </Button>
       </form>
       
-      {content.length > 1800 && (
-        <div className="mt-1 text-xs text-muted-foreground text-right">
-          {content.length}/2000
-        </div>
-      )}
     </div>
   );
 }

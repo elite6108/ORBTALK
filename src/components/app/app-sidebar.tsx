@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { UserMenu } from '@/components/auth/user-menu';
 import { CreateServerDialog } from '@/components/servers/create-server-dialog';
+import { JoinServerDialog } from '@/components/servers/join-server-dialog';
 import { CreateChannelDialog } from '@/components/servers/create-channel-dialog';
 import { DeleteChannelButton } from '@/components/servers/delete-channel-button';
 import { getUserServers, getFirstChannel, getServerChannels } from '@/lib/servers/actions';
@@ -21,6 +22,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo } from 'react';
+import { usePathname } from 'next/navigation';
 
 interface AppSidebarProps {
   user: any;
@@ -155,6 +157,34 @@ export function AppSidebar({ user }: AppSidebarProps) {
         
         <div className="w-8 h-px bg-gray-600" />
         
+        {/* Friends Button */}
+        <Link href="/friends">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="w-12 h-12 rounded-full bg-gray-700 hover:bg-gray-600 text-white"
+            title="Friends"
+          >
+            <Users className="h-6 w-6" />
+          </Button>
+        </Link>
+
+        <div className="w-8 h-px bg-gray-600" />
+
+        {/* DMs Button */}
+        <Link href="/dms">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="w-12 h-12 rounded-full bg-gray-700 hover:bg-gray-600 text-white"
+            title="Direct Messages"
+          >
+            <MessageSquare className="h-6 w-6" />
+          </Button>
+        </Link>
+
+        <div className="w-8 h-px bg-gray-600" />
+
         {/* Server Buttons */}
         {!mounted ? (
           // Show empty state during SSR to prevent hydration mismatch
@@ -182,6 +212,20 @@ export function AppSidebar({ user }: AppSidebarProps) {
             <Plus className="h-6 w-6" />
           </Button>
         </CreateServerDialog>
+
+        {/* Join Server Button */}
+        <JoinServerDialog>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="w-12 h-12 rounded-full bg-gray-700 hover:bg-gray-600 text-yellow-400 hover:text-yellow-300"
+            title="Join a Server"
+          >
+            <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </Button>
+        </JoinServerDialog>
       </div>
 
       {/* Channel List */}
@@ -317,6 +361,7 @@ function ChevronDown({ className }: { className?: string }) {
 }
 
 function VoiceInlineParticipants({ serverId, channelId }: { serverId: string; channelId: string }) {
+  const pathname = usePathname();
   const [people, setPeople] = useState<{ id: string; name: string; audioEnabled: boolean }[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -338,10 +383,13 @@ function VoiceInlineParticipants({ serverId, channelId }: { serverId: string; ch
   };
 
   useEffect(() => {
+    // Only poll LiveKit when viewing server routes; avoid Friends/DMs
+    const isServerRoute = pathname?.startsWith('/servers/');
+    if (!isServerRoute) return;
     load();
     const t = setInterval(load, 5000);
     return () => clearInterval(t);
-  }, [serverId, channelId]);
+  }, [serverId, channelId, pathname]);
 
   if (loading && people.length === 0) {
     return <div className="px-8 py-1 text-xs text-gray-500">Checking…</div>;

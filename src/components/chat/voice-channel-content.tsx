@@ -35,6 +35,12 @@ export function VoiceChannelContent({ serverId, channelId }: VoiceChannelContent
           setToken(data.token);
           setUrl(data.url);
           setRoomName(data.roomName);
+          // publish to global voice dock so connection persists across navigation
+          try {
+            const session = { serverId, channelId, token: data.token, url: data.url, roomName: data.roomName, channelName: data.channelName };
+            localStorage.setItem('orbtalk:voice:session', JSON.stringify(session));
+            window.dispatchEvent(new Event('orbtalk:voice:updated'));
+          } catch {}
         }
       } catch (e: any) {
         setError(e.message || 'Failed to join voice');

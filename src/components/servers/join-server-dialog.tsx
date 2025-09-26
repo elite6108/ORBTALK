@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { joinServer } from '@/lib/servers/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,100 +15,72 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Users, Hash } from 'lucide-react';
+import { Loader2, KeyRound } from 'lucide-react';
 
-export function JoinServerDialog() {
+export function JoinServerDialog({ children }: { children?: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [inviteCode, setInviteCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
-
-    const { error: joinError, server } = await joinServer({
-      invite_code: inviteCode,
-    });
-
-    if (joinError) {
-      setError(joinError);
-    } else if (server) {
-      // Reset form
-      setInviteCode('');
-      setOpen(false);
-      
-      // Navigate to the server - get the first channel ID
-      const { getFirstChannel } = await import('@/lib/servers/actions');
-      const { error: channelError, channelId } = await getFirstChannel(server.id);
-      if (!channelError && channelId) {
-        router.push(`/servers/${server.id}/channels/${channelId}`);
+    setLoading(true);
+    try {
+      const res = await fetch('/api/servers/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inviteCode: inviteCode.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Failed to join server');
       } else {
-        console.error('Failed to get first channel for navigation:', channelError);
-        // Fallback to servers page if we can't get the channel
-        router.push('/servers');
+        setOpen(false);
+        setInviteCode('');
+        router.push(`/servers/${data.serverId}/channels/${data.channelId}`);
       }
+    } catch (e) {
+      setError('Unexpected error');
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="w-full justify-start">
-          <Users className="mr-2 h-4 w-4" />
-          Join Server
-        </Button>
+        {children || (
+          <Button variant="outline" className="w-full justify-start">
+            <KeyRound className="mr-2 h-4 w-4" />
+            Join a Server
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Hash className="h-5 w-5" />
+            <KeyRound className="h-5 w-5" />
             Join a Server
           </DialogTitle>
-          <DialogDescription>
-            Enter an invite code to join an existing server.
-          </DialogDescription>
+          <DialogDescription>Enter an invite code to join a server.</DialogDescription>
         </DialogHeader>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={submit} className="space-y-4">
           {error && (
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          
           <div className="space-y-2">
-            <Label htmlFor="invite-code">Invite Code *</Label>
-            <Input
-              id="invite-code"
-              value={inviteCode}
-              onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-              placeholder="ABC12345"
-              required
-              maxLength={8}
-              className="font-mono text-center text-lg tracking-wider"
-            />
-            <p className="text-xs text-muted-foreground">
-              Ask a server admin for the invite code
-            </p>
+            <Label htmlFor="invite">Invite Code</Label>
+            <Input id="invite" value={inviteCode} onChange={(e) => setInviteCode(e.target.value)} placeholder="e.g. 1a2b3c4d5e" required />
           </div>
-          
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-              disabled={loading}
-            >
-              Cancel
-            </Button>
             <Button type="submit" disabled={loading || !inviteCode.trim()}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Join Server
+              Join
             </Button>
           </DialogFooter>
         </form>

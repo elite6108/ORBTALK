@@ -26,7 +26,16 @@ export async function POST(req: NextRequest) {
     const baseUrl = toHttpUrl(env.LIVEKIT_URL);
 
     const client = new RoomServiceClient(baseUrl, env.LIVEKIT_API_KEY, env.LIVEKIT_API_SECRET);
-    const list = await client.listParticipants(roomName);
+    let list: Array<{ identity?: string; muted?: boolean; name?: string }> = [];
+    try {
+      list = await client.listParticipants(roomName);
+    } catch (err: any) {
+      // If the LiveKit room does not exist yet, quietly return empty participants (no error spam)
+      if (err?.status === 404 || err?.code === 'not_found') {
+        return NextResponse.json({ participants: [] });
+      }
+      throw err;
+    }
 
     // Map LiveKit identities -> user profile names
     const identities = list.map((p) => p.identity).filter(Boolean);
@@ -49,7 +58,8 @@ export async function POST(req: NextRequest) {
     }));
     return NextResponse.json({ participants });
   } catch (error) {
-    console.error('LiveKit list participants error:', error);
+    // Log non-404 errors once to aid debugging, but do not block UI
+    console.error('LiveKit participants endpoint error:', error);
     return NextResponse.json({ participants: [] });
   }
 }

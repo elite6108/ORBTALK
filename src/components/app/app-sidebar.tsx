@@ -9,6 +9,8 @@ import { JoinServerDialog } from '@/components/servers/join-server-dialog';
 import { CreateChannelDialog } from '@/components/servers/create-channel-dialog';
 import { DeleteChannelButton } from '@/components/servers/delete-channel-button';
 import { getUserServers, getFirstChannel, getServerChannels } from '@/lib/servers/actions';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { SendInviteDialog } from '@/components/servers/send-invite-dialog';
 import type { Server } from '@/lib/servers/types';
 import {
   Plus,
@@ -72,21 +74,37 @@ function ServerButton({
   };
 
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      className={`w-12 h-12 rounded-full text-white relative ${
-        isSelected 
-          ? 'bg-indigo-600 hover:bg-indigo-700' 
-          : 'bg-gray-700 hover:bg-gray-600'
-      }`}
-      title={server.name}
-      onClick={handleClick}
-    >
-      <span className="text-sm font-bold">
-        {server.name.charAt(0).toUpperCase()}
-      </span>
-    </Button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className={`w-12 h-12 rounded-full text-white relative ${
+            isSelected 
+              ? 'bg-indigo-600 hover:bg-indigo-700' 
+              : 'bg-gray-700 hover:bg-gray-600'
+          }`}
+          title={server.name}
+          onClick={handleClick}
+          onContextMenu={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement).click(); }}
+        >
+          <span className="text-sm font-bold">
+            {server.name.charAt(0).toUpperCase()}
+          </span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent sideOffset={6} align="start">
+        <SendInviteDialog serverId={server.id} inviteCode={server.invite_code}>
+          <DropdownMenuItem>Send Invite…</DropdownMenuItem>
+        </SendInviteDialog>
+        <DropdownMenuItem onClick={() => navigator.clipboard.writeText(server.invite_code)}>
+          Copy Invite Code
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => navigator.clipboard.writeText(`${window.location.origin}/invite/${server.invite_code}`)}>
+          Copy Invite Link
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

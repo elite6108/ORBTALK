@@ -26,10 +26,15 @@ interface SendInviteDialogProps {
   serverId: string;
   inviteCode: string;
   children?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function SendInviteDialog({ serverId, inviteCode, children }: SendInviteDialogProps) {
-  const [open, setOpen] = useState(false);
+export function SendInviteDialog({ serverId, inviteCode, children, open: controlledOpen, onOpenChange }: SendInviteDialogProps) {
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const isControlled = typeof controlledOpen === 'boolean';
+  const open = isControlled ? (controlledOpen as boolean) : uncontrolledOpen;
+  const setOpen = isControlled && onOpenChange ? onOpenChange : setUncontrolledOpen;
   const [friends, setFriends] = useState<Friend[]>([]);
   const [q, setQ] = useState('');
   const [loading, setLoading] = useState(false);
@@ -81,7 +86,7 @@ export function SendInviteDialog({ serverId, inviteCode, children }: SendInviteD
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      {children ? <DialogTrigger asChild>{children}</DialogTrigger> : null}
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
           <DialogTitle>Send Server Invite</DialogTitle>

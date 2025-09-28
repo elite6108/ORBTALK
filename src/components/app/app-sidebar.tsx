@@ -73,38 +73,49 @@ function ServerButton({
     onSelect(server);
   };
 
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+
+  const onContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setMenuOpen(true);
+  };
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className={`w-12 h-12 rounded-full text-white relative ${
-            isSelected 
-              ? 'bg-indigo-600 hover:bg-indigo-700' 
-              : 'bg-gray-700 hover:bg-gray-600'
-          }`}
-          title={server.name}
-          onClick={handleClick}
-          onContextMenu={(e) => { e.preventDefault(); (e.currentTarget as HTMLElement).click(); }}
-        >
-          <span className="text-sm font-bold">
-            {server.name.charAt(0).toUpperCase()}
-          </span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent sideOffset={6} align="start">
-        <SendInviteDialog serverId={server.id} inviteCode={server.invite_code}>
-          <DropdownMenuItem>Send Invite…</DropdownMenuItem>
-        </SendInviteDialog>
-        <DropdownMenuItem onClick={() => navigator.clipboard.writeText(server.invite_code)}>
-          Copy Invite Code
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => navigator.clipboard.writeText(`${window.location.origin}/invite/${server.invite_code}`)}>
-          Copy Invite Link
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`w-12 h-12 rounded-full text-white relative ${
+              isSelected 
+                ? 'bg-indigo-600 hover:bg-indigo-700' 
+                : 'bg-gray-700 hover:bg-gray-600'
+            }`}
+            title={server.name}
+            onClick={handleClick}
+            onContextMenu={onContextMenu}
+          >
+            <span className="text-sm font-bold">
+              {server.name.charAt(0).toUpperCase()}
+            </span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent sideOffset={6} align="start">
+          <DropdownMenuItem onClick={() => { setInviteOpen(true); setMenuOpen(false); }}>
+            Send Invite…
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => navigator.clipboard.writeText(server.invite_code)}>
+            Copy Invite Code
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => navigator.clipboard.writeText(`${window.location.origin}/invite/${server.invite_code}`)}>
+            Copy Invite Link
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <SendInviteDialog serverId={server.id} inviteCode={server.invite_code} open={inviteOpen} onOpenChange={setInviteOpen} />
+    </>
   );
 }
 

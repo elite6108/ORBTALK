@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 
-export default function InviteAcceptPage({ params }: { params: { code: string } }) {
+export default function InviteAcceptPage() {
   const router = useRouter();
-  const { code } = params;
+  const params = useParams<{ code: string }>();
+  const code = params?.code;
   const [message, setMessage] = useState('Joining server…');
 
   useEffect(() => {

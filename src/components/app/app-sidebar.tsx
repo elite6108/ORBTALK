@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { UserMenu } from '@/components/auth/user-menu';
@@ -28,6 +29,7 @@ import { usePathname } from 'next/navigation';
 
 interface AppSidebarProps {
   user: any;
+  showChannels?: boolean;
 }
 
 // Server button component that handles server selection
@@ -40,8 +42,12 @@ function ServerButton({
   isSelected: boolean;
   onSelect: (server: Server) => void;
 }) {
+  const router = useRouter();
   const [channelId, setChannelId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const openViaContext = useRef(false);
 
   useEffect(() => {
     const fetchFirstChannel = async () => {
@@ -71,19 +77,48 @@ function ServerButton({
 
   const handleClick = () => {
     onSelect(server);
+    if (channelId) {
+      router.push(`/servers/${server.id}/channels/${channelId}`);
+    }
   };
-
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [inviteOpen, setInviteOpen] = useState(false);
 
   const onContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
+    openViaContext.current = true;
     setMenuOpen(true);
+    // Reset the flag after this tick to only allow opens initiated by right-click
+    setTimeout(() => { openViaContext.current = false; }, 0);
+  };
+
+  const copyText = async (text: string) => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        await navigator.clipboard.writeText(text);
+        return;
+      }
+    } catch {}
+    try {
+      const el = document.createElement('textarea');
+      el.value = text;
+      el.setAttribute('readonly', '');
+      el.style.position = 'absolute';
+      el.style.left = '-9999px';
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+    } catch {}
   };
 
   return (
     <>
-      <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+      <DropdownMenu open={menuOpen} onOpenChange={(next) => {
+        if (next && !openViaContext.current) {
+          // Ignore attempts to open via left click/keyboard
+          return;
+        }
+        setMenuOpen(next);
+      }}>
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
@@ -103,13 +138,13 @@ function ServerButton({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent sideOffset={6} align="start">
-          <DropdownMenuItem onClick={() => { setInviteOpen(true); setMenuOpen(false); }}>
+          <DropdownMenuItem onSelect={() => { setInviteOpen(true); setMenuOpen(false); }}>
             Send Invite…
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => navigator.clipboard.writeText(server.invite_code)}>
+          <DropdownMenuItem onSelect={() => copyText(server.invite_code)}>
             Copy Invite Code
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => navigator.clipboard.writeText(`${window.location.origin}/invite/${server.invite_code}`)}>
+          <DropdownMenuItem onSelect={() => copyText(`${typeof window !== 'undefined' ? window.location.origin : ''}/invite/${server.invite_code}`)}>
             Copy Invite Link
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -119,13 +154,15 @@ function ServerButton({
   );
 }
 
-export function AppSidebar({ user }: AppSidebarProps) {
+export function AppSidebar({ user, showChannels }: AppSidebarProps) {
   const [servers, setServers] = useState<Server[]>([]);
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
   const [selectedServer, setSelectedServer] = useState<Server | null>(null);
   const [channels, setChannels] = useState<any[]>([]);
   const [channelsLoading, setChannelsLoading] = useState(false);
+  const pathnameForSidebar = usePathname();
+  const shouldShowChannels = typeof showChannels === 'boolean' ? showChannels : Boolean(pathnameForSidebar?.startsWith('/servers/'));
 
   const fetchServers = async () => {
     const { error, servers: userServers } = await getUserServers();
@@ -258,6 +295,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
       </div>
 
       {/* Channel List */}
+      {shouldShowChannels && (
       <div className="w-60 bg-gray-800 flex flex-col">
         {/* Server Header */}
         <div className="h-12 border-b border-gray-700 flex items-center px-4 shadow-sm">
@@ -377,6 +415,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }

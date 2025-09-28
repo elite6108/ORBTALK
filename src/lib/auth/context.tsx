@@ -64,24 +64,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const fetchUserProfile = async (userId: string) => {
+  const fetchUserProfile = async (_userId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error) {
-        console.error('Error fetching user profile:', error);
-        setError({ message: 'Failed to fetch user profile', code: 'PROFILE_FETCH_ERROR' });
+      // Use server API to bypass RLS and ensure consistent profile load
+      const res = await fetch('/api/profile', { cache: 'no-store' });
+      const json = await res.json();
+      if (!res.ok) {
+        setError({ message: json.error || 'Failed to fetch user profile', code: 'PROFILE_FETCH_ERROR' });
         return;
       }
-
-      setProfile(data);
+      setProfile(json.profile);
       setError(null);
     } catch (err) {
-      console.error('Error fetching user profile:', err);
       setError({ message: 'Failed to fetch user profile', code: 'PROFILE_FETCH_ERROR' });
     }
   };

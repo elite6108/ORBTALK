@@ -22,20 +22,24 @@ const envSchema = serverEnvSchema.merge(publicEnvSchema);
 // Validate environment variables
 const parseEnv = (): z.infer<typeof envSchema> => {
   try {
-    // For development, provide fallback values if env vars are missing
-    const envWithFallbacks = {
-      ...process.env,
-      // Fallback values for development
-      SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || 'your-service-role-key-here',
-      NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://yoowbxaglfmconicaqsu.supabase.co',
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlvb3dieGFnbGZtY29uaWNhcXN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg1MTEwMzUsImV4cCI6MjA3NDA4NzAzNX0.vd8eXB0c0tPJGkFl_LT3rfj9lJBCHpdfWY5X_-v0LNA',
-      LIVEKIT_URL: process.env.LIVEKIT_URL || 'wss://orbit-ltax36qn.livekit.cloud',
-      LIVEKIT_API_KEY: process.env.LIVEKIT_API_KEY || 'APIqU9BiCrs5x46',
-      LIVEKIT_API_SECRET: process.env.LIVEKIT_API_SECRET || '4n6O0ZGHJimsQfp648HyF1eJfUsNA7xXqpMvIW7WmqoA',
-      NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-    };
-    
-    return envSchema.parse(envWithFallbacks);
+    const isProduction = process.env.NODE_ENV === 'production';
+    // In production, do NOT provide any fallbacks. Require real env vars.
+    // In development, provide convenient fallbacks so the app runs locally.
+    const source = isProduction
+      ? process.env
+      : {
+          ...process.env,
+          // Development fallbacks only
+          SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || 'your-service-role-key-here',
+          NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://yoowbxaglfmconicaqsu.supabase.co',
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlvb3dieGFnbGZtY29uaWNhcXN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg1MTEwMzUsImV4cCI6MjA3NDA4NzAzNX0.vd8eXB0c0tPJGkFl_LT3rfj9lJBCHpdfWY5X_-v0LNA',
+          LIVEKIT_URL: process.env.LIVEKIT_URL || 'wss://orbit-ltax36qn.livekit.cloud',
+          LIVEKIT_API_KEY: process.env.LIVEKIT_API_KEY || 'APIqU9BiCrs5x46',
+          LIVEKIT_API_SECRET: process.env.LIVEKIT_API_SECRET || '4n6O0ZGHJimsQfp648HyF1eJfUsNA7xXqpMvIW7WmqoA',
+          NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+        };
+
+    return envSchema.parse(source);
   } catch (error) {
     if (error instanceof z.ZodError) {
       const missingVars = error.issues.map((err) => `${err.path.join('.')}: ${err.message}`);

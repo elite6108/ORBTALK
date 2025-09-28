@@ -40,3 +40,5 @@ ALTER TABLE public.dm_messages REPLICA IDENTITY FULL;
 DROP FUNCTION IF EXISTS public._add_to_realtime_pub(regclass);
 
 
+
+

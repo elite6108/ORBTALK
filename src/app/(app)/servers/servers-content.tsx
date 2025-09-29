@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CreateServerDialog } from '@/components/servers/create-server-dialog';
 import { JoinServerDialog } from '@/components/servers/join-server-dialog';
-import { getUserServers, getFirstChannel } from '@/lib/servers/actions';
+import { getUserServers } from '@/lib/servers/actions';
 import type { Server } from '@/lib/servers/types';
 import { 
   Plus, 
@@ -25,50 +25,8 @@ interface ServersContentProps {
 
 // Server card component that fetches the first channel ID
 function ServerCard({ server, user }: { server: Server; user: any }) {
-  const [channelId, setChannelId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchFirstChannel = async () => {
-      const { error, channelId: firstChannelId } = await getFirstChannel(server.id);
-      if (!error && firstChannelId) {
-        setChannelId(firstChannelId);
-      } else {
-        console.error('Failed to fetch first channel for server:', server.id, error);
-        // This should never happen if server creation works properly
-        throw new Error(`No channels found for server ${server.id}`);
-      }
-      setLoading(false);
-    };
-
-    fetchFirstChannel();
-  }, [server.id]);
-
-  if (loading) {
-    return (
-      <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-        <CardHeader>
-          <div className="flex items-start justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-indigo-100 rounded-lg w-12 h-12 flex items-center justify-center animate-pulse">
-                <div className="w-6 h-6 bg-gray-300 rounded"></div>
-              </div>
-              <div>
-                <div className="h-5 bg-gray-300 rounded w-32 animate-pulse"></div>
-              </div>
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
-    );
-  }
-
-  if (!channelId) {
-    return null; // Don't render if no channel ID
-  }
-
   return (
-    <Link href={`/servers/${server.id}/channels/${channelId}`}>
+    <Link href={`/servers/${server.id}`}>
       <Card className="hover:shadow-lg transition-shadow cursor-pointer">
         <CardHeader>
           <div className="flex items-start justify-between">

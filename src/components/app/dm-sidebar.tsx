@@ -15,9 +15,9 @@ type Thread = {
   otherUser?: UserBasic;
 };
 
-export function DmSidebar() {
-  const [threads, setThreads] = useState<Thread[]>([]);
-  const [loading, setLoading] = useState(false);
+export function DmSidebar({ initialThreads }: { initialThreads?: Thread[] }) {
+  const [threads, setThreads] = useState<Thread[]>(initialThreads ?? []);
+  const [loading, setLoading] = useState(!initialThreads);
 
   useEffect(() => {
     const load = async () => {
@@ -32,8 +32,10 @@ export function DmSidebar() {
         setLoading(false);
       }
     };
-    load();
-  }, []);
+    if (!initialThreads) {
+      load();
+    }
+  }, [initialThreads]);
 
   return (
     <div className="w-60 bg-gray-800 text-white flex flex-col">
@@ -60,6 +62,7 @@ export function DmSidebar() {
     </div>
   );
 }
+
 
 
 

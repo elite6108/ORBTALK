@@ -11,6 +11,8 @@ import { CreateChannelDialog } from '@/components/servers/create-channel-dialog'
 import { DeleteChannelButton } from '@/components/servers/delete-channel-button';
 import { getUserServers, getFirstChannel, getServerChannels } from '@/lib/servers/actions';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { ServerSettingsDialog } from '@/components/servers/server-settings-dialog';
+import { getMyServerMembership, deleteServer } from '@/lib/servers/actions';
 import { SendInviteDialog } from '@/components/servers/send-invite-dialog';
 import type { Server } from '@/lib/servers/types';
 import {
@@ -30,6 +32,9 @@ import { usePathname } from 'next/navigation';
 interface AppSidebarProps {
   user: any;
   showChannels?: boolean;
+  initialServers?: Server[];
+  initialServerId?: string;
+  initialChannels?: any[];
 }
 
 // Server button component that handles server selection
@@ -45,24 +50,18 @@ function ServerButton({
   const router = useRouter();
   const [channelId, setChannelId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const openViaContext = useRef(false);
 
   useEffect(() => {
-    const fetchFirstChannel = async () => {
-      const { error, channelId: firstChannelId } = await getFirstChannel(server.id);
-      if (!error && firstChannelId) {
-        setChannelId(firstChannelId);
-      } else {
-        console.error('Failed to fetch first channel for server:', server.id, error);
-        // This should never happen if server creation works properly
-        throw new Error(`No channels found for server ${server.id}`);
-      }
-      setLoading(false);
-    };
-
-    fetchFirstChannel();
+    // Avoid fetching the channel client-side; we link to /servers/[serverId]
+    // which SSR-redirects to the first channel. Keep a minimal loading state
+    // to maintain button skeletons during hydration.
+    setChannelId('placeholder');
+    setLoading(false);
+    setMounted(true);
   }, [server.id]);
 
   if (loading) {
@@ -77,9 +76,8 @@ function ServerButton({
 
   const handleClick = () => {
     onSelect(server);
-    if (channelId) {
-      router.push(`/servers/${server.id}/channels/${channelId}`);
-    }
+    // Route to server; server page redirects to first channel server-side
+    router.push(`/servers/${server.id}`);
   };
 
   const onContextMenu = (e: React.MouseEvent) => {
@@ -112,54 +110,76 @@ function ServerButton({
 
   return (
     <>
-      <DropdownMenu open={menuOpen} onOpenChange={(next) => {
-        if (next && !openViaContext.current) {
-          // Ignore attempts to open via left click/keyboard
-          return;
-        }
-        setMenuOpen(next);
-      }}>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className={`w-12 h-12 rounded-full text-white relative ${
-              isSelected 
-                ? 'bg-indigo-600 hover:bg-indigo-700' 
-                : 'bg-gray-700 hover:bg-gray-600'
-            }`}
-            title={server.name}
-            onClick={handleClick}
-            onContextMenu={onContextMenu}
-          >
-            <span className="text-sm font-bold">
-              {server.name.charAt(0).toUpperCase()}
-            </span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent sideOffset={6} align="start">
-          <DropdownMenuItem onSelect={() => { setInviteOpen(true); setMenuOpen(false); }}>
-            Send Invite…
-          </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => copyText(server.invite_code)}>
-            Copy Invite Code
-          </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => copyText(`${typeof window !== 'undefined' ? window.location.origin : ''}/invite/${server.invite_code}`)}>
-            Copy Invite Link
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-      <SendInviteDialog serverId={server.id} inviteCode={server.invite_code} open={inviteOpen} onOpenChange={setInviteOpen} />
+      {mounted ? (
+        <>
+          <DropdownMenu open={menuOpen} onOpenChange={(next) => {
+            if (next && !openViaContext.current) {
+              // Ignore attempts to open via left click/keyboard
+              return;
+            }
+            setMenuOpen(next);
+          }}>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={`w-12 h-12 rounded-full text-white relative ${
+                  isSelected 
+                    ? 'bg-indigo-600 hover:bg-indigo-700' 
+                    : 'bg-gray-700 hover:bg-gray-600'
+                }`}
+                title={server.name}
+                onClick={handleClick}
+                onContextMenu={onContextMenu}
+              >
+                <span className="text-sm font-bold">
+                  {server.name.charAt(0).toUpperCase()}
+                </span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent sideOffset={6} align="start">
+              <DropdownMenuItem onSelect={() => { setInviteOpen(true); setMenuOpen(false); }}>
+                Send Invite…
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => copyText(server.invite_code)}>
+                Copy Invite Code
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => copyText(`${typeof window !== 'undefined' ? window.location.origin : ''}/invite/${server.invite_code}`)}>
+                Copy Invite Link
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <SendInviteDialog serverId={server.id} inviteCode={server.invite_code} open={inviteOpen} onOpenChange={setInviteOpen} />
+        </>
+      ) : (
+        <Button
+          variant="ghost"
+          size="icon"
+          className={`w-12 h-12 rounded-full text-white relative ${
+            isSelected 
+              ? 'bg-indigo-600 hover:bg-indigo-700' 
+              : 'bg-gray-700 hover:bg-gray-600'
+          }`}
+          title={server.name}
+          onClick={handleClick}
+        >
+          <span className="text-sm font-bold">
+            {server.name.charAt(0).toUpperCase()}
+          </span>
+        </Button>
+      )}
     </>
   );
 }
 
-export function AppSidebar({ user, showChannels }: AppSidebarProps) {
-  const [servers, setServers] = useState<Server[]>([]);
-  const [loading, setLoading] = useState(true);
+export function AppSidebar({ user, showChannels, initialServers, initialServerId, initialChannels }: AppSidebarProps) {
+  const [servers, setServers] = useState<Server[]>(initialServers ?? []);
+  const [loading, setLoading] = useState(!initialServers);
   const [mounted, setMounted] = useState(false);
-  const [selectedServer, setSelectedServer] = useState<Server | null>(null);
-  const [channels, setChannels] = useState<any[]>([]);
+  const [selectedServer, setSelectedServer] = useState<Server | null>(
+    initialServers && initialServerId ? (initialServers.find(s => s.id === initialServerId) ?? initialServers[0] ?? null) : null
+  );
+  const [channels, setChannels] = useState<any[]>(initialChannels ?? []);
   const [channelsLoading, setChannelsLoading] = useState(false);
   const pathnameForSidebar = usePathname();
   const shouldShowChannels = typeof showChannels === 'boolean' ? showChannels : Boolean(pathnameForSidebar?.startsWith('/servers/'));
@@ -197,11 +217,46 @@ export function AppSidebar({ user, showChannels }: AppSidebarProps) {
 
   useEffect(() => {
     setMounted(true);
-    fetchServers();
-  }, []);
+    if (!initialServers) {
+      fetchServers();
+    } else {
+      setLoading(false);
+    }
+  }, [initialServers]);
+
+  // Keep servers in sync with incoming initialServers when navigating between routes on the client
+  useEffect(() => {
+    if (initialServers) {
+      setServers(initialServers);
+    }
+  }, [initialServers]);
+
+  useEffect(() => {
+    const match = pathnameForSidebar?.match(/^\/servers\/([\w-]+)/);
+    const activeServerId = match && match[1] ? match[1] : undefined;
+    if (activeServerId && servers.length) {
+      const found = servers.find(s => s.id === activeServerId) || servers[0] || null;
+      setSelectedServer(found);
+    }
+  }, [pathnameForSidebar, servers]);
+
+  // Also honor initialServerId from server props when it changes across navigations
+  useEffect(() => {
+    if (initialServerId && servers.length) {
+      const found = servers.find(s => s.id === initialServerId) || servers[0] || null;
+      setSelectedServer(found);
+    }
+  }, [initialServerId, servers]);
 
   useEffect(() => {
     if (selectedServer) {
+      if (initialServerId === selectedServer.id && initialChannels) {
+        setChannels(initialChannels);
+        setChannelsLoading(false);
+        return;
+      }
+      // Clear channels immediately to avoid showing channels from previous server
+      setChannels([]);
       fetchChannels(selectedServer.id);
     }
   }, [selectedServer]);
@@ -269,39 +324,94 @@ export function AppSidebar({ user, showChannels }: AppSidebarProps) {
         )}
         
         {/* Add Server Button */}
-        <CreateServerDialog onServerCreated={fetchServers}>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="w-12 h-12 rounded-full bg-gray-700 hover:bg-gray-600 text-green-500 hover:text-green-400"
-          >
-            <Plus className="h-6 w-6" />
-          </Button>
-        </CreateServerDialog>
+        {mounted && (
+          <CreateServerDialog onServerCreated={fetchServers}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="w-12 h-12 rounded-full bg-gray-700 hover:bg-gray-600 text-green-500 hover:text-green-400"
+            >
+              <Plus className="h-6 w-6" />
+            </Button>
+          </CreateServerDialog>
+        )}
 
         {/* Join Server Button */}
-        <JoinServerDialog>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="w-12 h-12 rounded-full bg-gray-700 hover:bg-gray-600 text-yellow-400 hover:text-yellow-300"
-            title="Join a Server"
-          >
-            <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-          </Button>
-        </JoinServerDialog>
+        {mounted && (
+          <JoinServerDialog>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="w-12 h-12 rounded-full bg-gray-700 hover:bg-gray-600 text-yellow-400 hover:text-yellow-300"
+              title="Join a Server"
+            >
+              <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            </Button>
+          </JoinServerDialog>
+        )}
       </div>
 
       {/* Channel List */}
       {shouldShowChannels && (
       <div className="w-60 bg-gray-800 flex flex-col">
-        {/* Server Header */}
+        {/* Server Header (click -> settings) */}
         <div className="h-12 border-b border-gray-700 flex items-center px-4 shadow-sm">
-          <h2 className="font-semibold text-white truncate">
-            {selectedServer?.name || 'Select a Server'}
-          </h2>
+          {selectedServer ? (
+            <div className="w-full">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="font-semibold text-white truncate text-left hover:underline">
+                    {selectedServer.name}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" sideOffset={6}>
+                  <DropdownMenuItem asChild>
+                    <Link href={`/servers/${selectedServer.id}`}>Go to Server</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href={`/servers/${selectedServer.id}/channels/${channels.find(c=>c.type==='text')?.id || ''}`}>First Text Channel</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={async () => {
+                    const { canManageServer } = await getMyServerMembership(selectedServer.id);
+                    if (canManageServer) {
+                      // open settings dialog programmatically not supported; render inline
+                    }
+                  }} disabled>
+                    Server Settings…
+                  </DropdownMenuItem>
+                  {/* Inline settings dialog trigger for authorized users */}
+                  <div className="px-2 py-1">
+                    <ServerSettingsDialog
+                      serverId={selectedServer.id}
+                      serverName={selectedServer.name}
+                      serverIconUrl={selectedServer.icon_url}
+                      trigger={<Button variant="outline" size="sm" className="w-full">Open Settings</Button>}
+                    />
+                  </div>
+                  <DropdownMenuItem onSelect={async () => {
+                    try {
+                      const { error } = await deleteServer(selectedServer.id);
+                      if (!error) {
+                        window.location.href = '/servers';
+                      }
+                    } catch {}
+                  }}>
+                    Delete Server (owner)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <form action="/api/servers/leave" method="post">
+                      <input type="hidden" name="serverId" value={selectedServer.id} />
+                      <button type="submit" className="w-full text-left">Leave Server</button>
+                    </form>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          ) : (
+            <h2 className="font-semibold text-white truncate">Select a Server</h2>
+          )}
         </div>
 
         {/* Channel Categories */}
@@ -310,10 +420,9 @@ export function AppSidebar({ user, showChannels }: AppSidebarProps) {
             <div className="p-4 text-center text-gray-400">
               <p>Select a server to view channels</p>
             </div>
-          ) : channelsLoading ? (
-            <div className="p-4 text-center text-gray-400">
-              <p>Loading channels...</p>
-            </div>
+          ) : channelsLoading && channels.length === 0 ? (
+            // Keep space but avoid flashing a loading message when we have initial data
+            <div className="p-4 text-center text-gray-400 min-h-8" />
           ) : channels.length === 0 ? (
             <div className="p-4 text-center text-gray-400">
               <p>No channels found</p>

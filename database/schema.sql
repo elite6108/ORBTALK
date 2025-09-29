@@ -110,6 +110,35 @@ CREATE TABLE IF NOT EXISTS public.server_members (
     UNIQUE(server_id, user_id)
 );
 
+-- Server roles (Discord-like, with bitmask permissions)
+CREATE TABLE IF NOT EXISTS public.server_roles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    server_id UUID NOT NULL REFERENCES public.servers(id) ON DELETE CASCADE,
+    name VARCHAR(100) NOT NULL,
+    color INTEGER,
+    position INTEGER NOT NULL DEFAULT 0,
+    permissions BIGINT NOT NULL DEFAULT 0, -- bitmask
+    mentionable BOOLEAN NOT NULL DEFAULT FALSE,
+    hoist BOOLEAN NOT NULL DEFAULT FALSE,
+    is_default BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT role_name_length CHECK (LENGTH(name) BETWEEN 1 AND 100),
+    CONSTRAINT ux_role_unique_per_server UNIQUE (server_id, name)
+);
+
+-- Many-to-many assignment of roles to members
+CREATE TABLE IF NOT EXISTS public.server_member_roles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    server_id UUID NOT NULL REFERENCES public.servers(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    role_id UUID NOT NULL REFERENCES public.server_roles(id) ON DELETE CASCADE,
+    assigned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT ux_member_role UNIQUE (server_id, user_id, role_id)
+);
+
 -- Channels
 CREATE TABLE IF NOT EXISTS public.channels (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -298,6 +327,11 @@ CREATE INDEX IF NOT EXISTS idx_servers_invite_code ON public.servers(invite_code
 CREATE INDEX IF NOT EXISTS idx_servers_is_public ON public.servers(is_public);
 CREATE INDEX IF NOT EXISTS idx_servers_created_at ON public.servers(created_at);
 
+-- Server roles
+CREATE INDEX IF NOT EXISTS idx_server_roles_server_id ON public.server_roles(server_id);
+CREATE INDEX IF NOT EXISTS idx_server_roles_position ON public.server_roles(position);
+CREATE INDEX IF NOT EXISTS idx_server_member_roles_server_user ON public.server_member_roles(server_id, user_id);
+
 -- Server members
 CREATE INDEX IF NOT EXISTS idx_server_members_server_id ON public.server_members(server_id);
 CREATE INDEX IF NOT EXISTS idx_server_members_user_id ON public.server_members(user_id);
@@ -409,6 +443,8 @@ ALTER TABLE public.voice_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.system_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.server_roles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.server_member_roles ENABLE ROW LEVEL SECURITY;
 
 -- =====================================================
 -- RLS POLICIES
@@ -419,6 +455,11 @@ DROP POLICY IF EXISTS "Users can view profiles" ON public.users;
 DROP POLICY IF EXISTS "Users can update own profile" ON public.users;
 DROP POLICY IF EXISTS "Admins can view all users" ON public.users;
 DROP POLICY IF EXISTS "Admins can update any user" ON public.users;
+-- Also drop alternate names used by this schema for idempotency
+DROP POLICY IF EXISTS "Users see own + non-banned" ON public.users;
+DROP POLICY IF EXISTS "Users update own profile" ON public.users;
+DROP POLICY IF EXISTS "Admins see all users" ON public.users;
+DROP POLICY IF EXISTS "Admins update any user" ON public.users;
 
 CREATE POLICY "Users see own + non-banned"
   ON public.users FOR SELECT
@@ -441,6 +482,11 @@ DROP POLICY IF EXISTS "Users can view accessible servers" ON public.servers;
 DROP POLICY IF EXISTS "Server owners can update servers" ON public.servers;
 DROP POLICY IF EXISTS "Admins can update any server" ON public.servers;
 DROP POLICY IF EXISTS "Users can create servers" ON public.servers;
+-- Alternate names used below
+DROP POLICY IF EXISTS "View public or member servers" ON public.servers;
+DROP POLICY IF EXISTS "Owner updates server" ON public.servers;
+DROP POLICY IF EXISTS "Admins update any server" ON public.servers;
+DROP POLICY IF EXISTS "Users create servers" ON public.servers;
 
 CREATE POLICY "View public or member servers"
   ON public.servers FOR SELECT
@@ -467,6 +513,11 @@ DROP POLICY IF EXISTS "Users can view server members" ON public.server_members;
 DROP POLICY IF EXISTS "Users can join servers" ON public.server_members;
 DROP POLICY IF EXISTS "Users can leave servers" ON public.server_members;
 DROP POLICY IF EXISTS "Server admins can manage members" ON public.server_members;
+-- Alternate names used below
+DROP POLICY IF EXISTS "View members if member or admin" ON public.server_members;
+DROP POLICY IF EXISTS "Join server" ON public.server_members;
+DROP POLICY IF EXISTS "Leave server" ON public.server_members;
+DROP POLICY IF EXISTS "Owner/Admin manage members" ON public.server_members;
 
 CREATE POLICY "View members if member or admin"
   ON public.server_members FOR SELECT
@@ -498,9 +549,60 @@ CREATE POLICY "Owner/Admin manage members"
     OR EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.is_admin)
   );
 
+-- SERVER_ROLES
+DROP POLICY IF EXISTS "View roles if member" ON public.server_roles;
+DROP POLICY IF EXISTS "Manage roles if owner/admin" ON public.server_roles;
+
+CREATE POLICY "View roles if member"
+  ON public.server_roles FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.server_members m
+      WHERE m.server_id = server_roles.server_id AND m.user_id = auth.uid()
+    )
+    OR EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.is_admin)
+  );
+
+CREATE POLICY "Manage roles if owner/admin"
+  ON public.server_roles FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.server_members m
+      WHERE m.server_id = server_roles.server_id AND m.user_id = auth.uid() AND m.role IN ('owner','admin')
+    )
+    OR EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.is_admin)
+  );
+
+-- SERVER_MEMBER_ROLES
+DROP POLICY IF EXISTS "View member roles if member" ON public.server_member_roles;
+DROP POLICY IF EXISTS "Assign roles if owner/admin" ON public.server_member_roles;
+
+CREATE POLICY "View member roles if member"
+  ON public.server_member_roles FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.server_members m
+      WHERE m.server_id = public.server_member_roles.server_id AND m.user_id = auth.uid()
+    )
+    OR EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.is_admin)
+  );
+
+CREATE POLICY "Assign roles if owner/admin"
+  ON public.server_member_roles FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.server_members m
+      WHERE m.server_id = public.server_member_roles.server_id AND m.user_id = auth.uid() AND m.role IN ('owner','admin')
+    )
+    OR EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.is_admin)
+  );
+
 -- CHANNELS
 DROP POLICY IF EXISTS "Users can view accessible channels" ON public.channels;
 DROP POLICY IF EXISTS "Server admins can manage channels" ON public.channels;
+-- Alternate names
+DROP POLICY IF EXISTS "View channels if member or admin" ON public.channels;
+DROP POLICY IF EXISTS "Owner/Admin manage channels" ON public.channels;
 
 CREATE POLICY "View channels if member or admin"
   ON public.channels FOR SELECT
@@ -529,6 +631,11 @@ DROP POLICY IF EXISTS "Users can view accessible messages" ON public.messages;
 DROP POLICY IF EXISTS "Users can create messages" ON public.messages;
 DROP POLICY IF EXISTS "Users can update own messages" ON public.messages;
 DROP POLICY IF EXISTS "Moderators can manage messages" ON public.messages;
+-- Alternate names
+DROP POLICY IF EXISTS "View messages if channel member or admin" ON public.messages;
+DROP POLICY IF EXISTS "Create messages if channel member" ON public.messages;
+DROP POLICY IF EXISTS "Update own messages" ON public.messages;
+DROP POLICY IF EXISTS "Mods manage messages" ON public.messages;
 
 CREATE POLICY "View messages if channel member or admin"
   ON public.messages FOR SELECT
@@ -575,6 +682,9 @@ CREATE POLICY "Mods manage messages"
 -- VOICE SESSIONS
 DROP POLICY IF EXISTS "Users can view voice sessions" ON public.voice_sessions;
 DROP POLICY IF EXISTS "Users can manage own voice sessions" ON public.voice_sessions;
+-- Alternate names
+DROP POLICY IF EXISTS "View voice sessions if channel member or admin" ON public.voice_sessions;
+DROP POLICY IF EXISTS "Manage own voice sessions" ON public.voice_sessions;
 
 CREATE POLICY "View voice sessions if channel member or admin"
   ON public.voice_sessions FOR SELECT
@@ -594,6 +704,7 @@ CREATE POLICY "Manage own voice sessions"
 
 -- AUDIT LOGS
 DROP POLICY IF EXISTS "Only admins can access audit logs" ON public.audit_logs;
+DROP POLICY IF EXISTS "Admins manage audit logs" ON public.audit_logs;
 CREATE POLICY "Admins manage audit logs"
   ON public.audit_logs FOR ALL
   USING (EXISTS (SELECT 1 FROM public.users u WHERE u.id = auth.uid() AND u.is_admin));
@@ -601,6 +712,10 @@ CREATE POLICY "Admins manage audit logs"
 -- REPORTS
 DROP POLICY IF EXISTS "Users can create reports" ON public.reports;
 DROP POLICY IF EXISTS "Admins can manage reports" ON public.reports;
+-- Alternate name
+DROP POLICY IF EXISTS "Create reports (self)" ON public.reports;
+-- Exact name created below
+DROP POLICY IF EXISTS "Admins manage reports" ON public.reports;
 
 CREATE POLICY "Create reports (self)"
   ON public.reports FOR INSERT
@@ -612,6 +727,9 @@ CREATE POLICY "Admins manage reports"
 
 -- SYSTEM SETTINGS
 DROP POLICY IF EXISTS "Only admins can access system settings" ON public.system_settings;
+-- Alternate names
+DROP POLICY IF EXISTS "Admins manage settings" ON public.system_settings;
+DROP POLICY IF EXISTS "Read public settings" ON public.system_settings;
 
 CREATE POLICY "Admins manage settings"
   ON public.system_settings FOR ALL
@@ -648,22 +766,41 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-  RETURN EXISTS (
-    SELECT 1
-    FROM public.server_members sm
-    WHERE sm.server_id = server_uuid 
-      AND sm.user_id = user_uuid
-      AND (
-        sm.role = 'owner'
-        OR (sm.role = 'admin' AND permission_name IN (
-          'manage_channels','manage_roles','kick_members','ban_members',
-          'manage_server','manage_messages','mention_everyone',
-          'manage_webhooks','manage_emojis'
-        ))
-        OR (sm.role = 'moderator' AND permission_name IN ('kick_members','manage_messages'))
-        OR (permission_name = 'send_messages')
-      )
-  );
+  RETURN 
+    EXISTS (
+      SELECT 1
+      FROM public.server_members sm
+      WHERE sm.server_id = server_uuid 
+        AND sm.user_id = user_uuid
+        AND (
+          sm.role = 'owner'
+          OR (sm.role = 'admin' AND permission_name IN (
+            'manage_channels','manage_roles','kick_members','ban_members',
+            'manage_server','manage_messages','mention_everyone',
+            'manage_webhooks','manage_emojis'
+          ))
+          OR (sm.role = 'moderator' AND permission_name IN ('kick_members','manage_messages'))
+          OR (permission_name = 'send_messages')
+        )
+    )
+    OR EXISTS (
+      SELECT 1
+      FROM public.server_member_roles smr
+      JOIN public.server_roles r ON r.id = smr.role_id
+      WHERE smr.server_id = server_uuid
+        AND smr.user_id = user_uuid
+        AND (
+          (permission_name = 'manage_roles'        AND (r.permissions & 1) <> 0) OR
+          (permission_name = 'manage_channels'     AND (r.permissions & 2) <> 0) OR
+          (permission_name = 'kick_members'        AND (r.permissions & 4) <> 0) OR
+          (permission_name = 'ban_members'         AND (r.permissions & 8) <> 0) OR
+          (permission_name = 'manage_server'       AND (r.permissions & 16) <> 0) OR
+          (permission_name = 'manage_messages'     AND (r.permissions & 32) <> 0) OR
+          (permission_name = 'mention_everyone'    AND (r.permissions & 64) <> 0) OR
+          (permission_name = 'manage_webhooks'     AND (r.permissions & 128) <> 0) OR
+          (permission_name = 'manage_emojis'       AND (r.permissions & 256) <> 0)
+        )
+    );
 END;
 $$;
 

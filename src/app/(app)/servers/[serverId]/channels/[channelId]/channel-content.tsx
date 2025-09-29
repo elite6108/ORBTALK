@@ -12,10 +12,15 @@ interface ChannelContentProps {
   serverId: string;
   channelId: string;
   user: AuthUser;
+  initialData?: {
+    error: string | null;
+    messages?: any[];
+    channel?: { id: string; name: string; server_id: string; server_name: string | null };
+  };
 }
 
-export function ChannelContent({ serverId, channelId, user }: ChannelContentProps) {
-  const { messages, loading, error, channelName, serverName, addOptimisticMessage } = useChannelMessages(channelId);
+export function ChannelContent({ serverId, channelId, user, initialData }: ChannelContentProps) {
+  const { messages, loading, error, channelName, serverName, addOptimisticMessage } = useChannelMessages(channelId, initialData);
   const { typingUsers, startTyping, stopTyping } = useTypingIndicator(channelId, user.id);
 
   const handleMessageSent = (message: any) => {

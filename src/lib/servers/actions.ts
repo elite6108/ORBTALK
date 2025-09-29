@@ -3,7 +3,7 @@
 import { createClient, createAdminClient } from '../supabase/server';
 import { getCurrentUserAction } from '../auth/server-actions';
 import { revalidatePath } from 'next/cache';
-import type { CreateServerData, CreateChannelData, JoinServerData, Server, Channel } from './types';
+import type { CreateServerData, CreateChannelData, JoinServerData, Server, Channel, ServerRole } from './types';
 
 /**
  * Create a new server
@@ -403,6 +403,371 @@ export async function deleteChannel(channelId: string): Promise<{ error: string 
   }
 }
 
+// ====== SERVER ROLES ======
+
+export async function listServerRoles(serverId: string): Promise<{ error: string | null; roles?: ServerRole[] }> {
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from('server_roles')
+      .select('*')
+      .eq('server_id', serverId)
+      .order('position', { ascending: true });
+    if (error) return { error: 'Failed to load roles.' };
+    return { error: null, roles: (data ?? []) as unknown as ServerRole[] };
+  } catch {
+    return { error: 'Unexpected error loading roles.' };
+  }
+}
+
+// ====== SERVER SETTINGS ======
+export async function updateServer(
+  serverId: string,
+  updates: { name?: string; description?: string | null; icon_url?: string | null; banner_url?: string | null; is_public?: boolean }
+): Promise<{ error: string | null; server?: Server }>{
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: 'Not signed in.' };
+    const admin = createAdminClient();
+
+    // Only owner/admin can update server
+    const { data: member } = await admin
+      .from('server_members')
+      .select('role')
+      .eq('server_id', serverId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (!member || !['owner','admin'].includes((member as any).role)) return { error: 'Not authorized.' };
+
+    const payload: any = {};
+    if (updates.name !== undefined) payload.name = String(updates.name).slice(0, 100);
+    if (updates.description !== undefined) payload.description = updates.description ?? null;
+    if (updates.icon_url !== undefined) payload.icon_url = updates.icon_url ?? null;
+    if (updates.banner_url !== undefined) payload.banner_url = updates.banner_url ?? null;
+    if (updates.is_public !== undefined) payload.is_public = updates.is_public;
+
+    const { data, error } = await admin
+      .from('servers')
+      .update(payload)
+      .eq('id', serverId)
+      .select('*')
+      .single();
+    if (error || !data) return { error: 'Failed to update server.' };
+    revalidatePath(`/servers/${serverId}`);
+    revalidatePath('/servers');
+    return { error: null, server: data as unknown as Server };
+  } catch {
+    return { error: 'Unexpected error updating server.' };
+  }
+}
+
+export async function createServerRole(serverId: string, role: Partial<ServerRole>): Promise<{ error: string | null; role?: ServerRole }> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: 'Not signed in.' };
+    const admin = createAdminClient();
+
+    // Only owner/admin or users with manage_roles bit via assigned roles
+    const { data: member } = await admin
+      .from('server_members')
+      .select('role')
+      .eq('server_id', serverId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+    let authorized = false;
+    if (member && ['owner','admin'].includes((member as any).role)) authorized = true;
+    if (!authorized) {
+      const { data: assigned } = await admin
+        .from('server_member_roles')
+        .select('role_id')
+        .eq('server_id', serverId)
+        .eq('user_id', user.id);
+      const roleIds = (assigned ?? []).map((r: any) => r.role_id);
+      if (roleIds.length) {
+        const { data: roles } = await admin
+          .from('server_roles')
+          .select('permissions')
+          .in('id', roleIds);
+        authorized = (roles ?? []).some((r: any) => (Number(r.permissions) & 1) !== 0); // manage_roles bit 1
+      }
+    }
+    if (!authorized) return { error: 'Not authorized.' };
+
+    const insert = {
+      server_id: serverId,
+      name: (role.name || 'New Role').slice(0, 100),
+      color: role.color ?? null,
+      position: role.position ?? 0,
+      permissions: role.permissions ?? 0,
+      mentionable: Boolean(role.mentionable),
+      hoist: Boolean(role.hoist),
+      is_default: Boolean(role.is_default),
+    };
+    const { data, error } = await admin
+      .from('server_roles')
+      .insert(insert)
+      .select('*')
+      .single();
+    if (error || !data) return { error: 'Failed to create role.' };
+    revalidatePath(`/servers/${serverId}/roles`);
+    return { error: null, role: data as unknown as ServerRole };
+  } catch {
+    return { error: 'Unexpected error creating role.' };
+  }
+}
+
+export async function updateServerRole(serverId: string, roleId: string, updates: Partial<ServerRole>): Promise<{ error: string | null; role?: ServerRole }> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: 'Not signed in.' };
+    const admin = createAdminClient();
+    const { data: member } = await admin
+      .from('server_members')
+      .select('role')
+      .eq('server_id', serverId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+    let authorized = false;
+    if (member && ['owner','admin'].includes((member as any).role)) authorized = true;
+    if (!authorized) {
+      const { data: assigned } = await admin
+        .from('server_member_roles')
+        .select('role_id')
+        .eq('server_id', serverId)
+        .eq('user_id', user.id);
+      const roleIds = (assigned ?? []).map((r: any) => r.role_id);
+      if (roleIds.length) {
+        const { data: roles } = await admin
+          .from('server_roles')
+          .select('permissions')
+          .in('id', roleIds);
+        authorized = (roles ?? []).some((r: any) => (Number(r.permissions) & 1) !== 0);
+      }
+    }
+    if (!authorized) return { error: 'Not authorized.' };
+
+    const payload: any = {};
+    if (updates.name !== undefined) payload.name = String(updates.name).slice(0, 100);
+    if (updates.color !== undefined) payload.color = updates.color;
+    if (updates.position !== undefined) payload.position = updates.position;
+    if (updates.permissions !== undefined) payload.permissions = updates.permissions;
+    if (updates.mentionable !== undefined) payload.mentionable = updates.mentionable;
+    if (updates.hoist !== undefined) payload.hoist = updates.hoist;
+    if (updates.is_default !== undefined) payload.is_default = updates.is_default;
+
+    const { data, error } = await admin
+      .from('server_roles')
+      .update(payload)
+      .eq('id', roleId)
+      .eq('server_id', serverId)
+      .select('*')
+      .single();
+    if (error || !data) return { error: 'Failed to update role.' };
+    revalidatePath(`/servers/${serverId}/roles`);
+    return { error: null, role: data as unknown as ServerRole };
+  } catch {
+    return { error: 'Unexpected error updating role.' };
+  }
+}
+
+export async function deleteServerRole(serverId: string, roleId: string): Promise<{ error: string | null }> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: 'Not signed in.' };
+    const admin = createAdminClient();
+    const { data: member } = await admin
+      .from('server_members')
+      .select('role')
+      .eq('server_id', serverId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+    let authorized = false;
+    if (member && ['owner','admin'].includes((member as any).role)) authorized = true;
+    if (!authorized) {
+      const { data: assigned } = await admin
+        .from('server_member_roles')
+        .select('role_id')
+        .eq('server_id', serverId)
+        .eq('user_id', user.id);
+      const roleIds = (assigned ?? []).map((r: any) => r.role_id);
+      if (roleIds.length) {
+        const { data: roles } = await admin
+          .from('server_roles')
+          .select('permissions')
+          .in('id', roleIds);
+        authorized = (roles ?? []).some((r: any) => (Number(r.permissions) & 1) !== 0);
+      }
+    }
+    if (!authorized) return { error: 'Not authorized.' };
+
+    // Remove assignments, then role
+    await admin.from('server_member_roles').delete().eq('server_id', serverId).eq('role_id', roleId);
+    const { error } = await admin.from('server_roles').delete().eq('id', roleId).eq('server_id', serverId);
+    if (error) return { error: 'Failed to delete role.' };
+    revalidatePath(`/servers/${serverId}/roles`);
+    return { error: null };
+  } catch {
+    return { error: 'Unexpected error deleting role.' };
+  }
+}
+
+export async function assignRoleToUser(serverId: string, roleId: string, userId: string): Promise<{ error: string | null }> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: 'Not signed in.' };
+    const admin = createAdminClient();
+    const { data: member } = await admin
+      .from('server_members')
+      .select('role')
+      .eq('server_id', serverId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+    let authorized = false;
+    if (member && ['owner','admin'].includes((member as any).role)) authorized = true;
+    if (!authorized) {
+      const { data: assigned } = await admin
+        .from('server_member_roles')
+        .select('role_id')
+        .eq('server_id', serverId)
+        .eq('user_id', user.id);
+      const roleIds = (assigned ?? []).map((r: any) => r.role_id);
+      if (roleIds.length) {
+        const { data: roles } = await admin
+          .from('server_roles')
+          .select('permissions')
+          .in('id', roleIds);
+        authorized = (roles ?? []).some((r: any) => (Number(r.permissions) & 1) !== 0);
+      }
+    }
+    if (!authorized) return { error: 'Not authorized.' };
+
+    const { error } = await admin
+      .from('server_member_roles')
+      .insert({ server_id: serverId, user_id: userId, role_id: roleId });
+    if (error) return { error: 'Failed to assign role.' };
+    revalidatePath(`/servers/${serverId}/roles`);
+    return { error: null };
+  } catch {
+    return { error: 'Unexpected error assigning role.' };
+  }
+}
+
+export async function revokeRoleFromUser(serverId: string, roleId: string, userId: string): Promise<{ error: string | null }> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: 'Not signed in.' };
+    const admin = createAdminClient();
+    const { data: member } = await admin
+      .from('server_members')
+      .select('role')
+      .eq('server_id', serverId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+    let authorized = false;
+    if (member && ['owner','admin'].includes((member as any).role)) authorized = true;
+    if (!authorized) {
+      const { data: assigned } = await admin
+        .from('server_member_roles')
+        .select('role_id')
+        .eq('server_id', serverId)
+        .eq('user_id', user.id);
+      const roleIds = (assigned ?? []).map((r: any) => r.role_id);
+      if (roleIds.length) {
+        const { data: roles } = await admin
+          .from('server_roles')
+          .select('permissions')
+          .in('id', roleIds);
+        authorized = (roles ?? []).some((r: any) => (Number(r.permissions) & 1) !== 0);
+      }
+    }
+    if (!authorized) return { error: 'Not authorized.' };
+
+    const { error } = await admin
+      .from('server_member_roles')
+      .delete()
+      .eq('server_id', serverId)
+      .eq('user_id', userId)
+      .eq('role_id', roleId);
+    if (error) return { error: 'Failed to revoke role.' };
+    revalidatePath(`/servers/${serverId}/roles`);
+    return { error: null };
+  } catch {
+    return { error: 'Unexpected error revoking role.' };
+  }
+}
+
+export async function getMyServerMembership(serverId: string): Promise<{ error: string | null; role?: 'owner'|'admin'|'moderator'|'member'; canManageServer?: boolean }>{
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: 'Not signed in.' };
+    const admin = createAdminClient();
+
+    const { data: member } = await admin
+      .from('server_members')
+      .select('role')
+      .eq('server_id', serverId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (!member) return { error: 'Not a member.' };
+    const role = (member as any).role as 'owner'|'admin'|'moderator'|'member';
+
+    if (role === 'owner' || role === 'admin') {
+      return { error: null, role, canManageServer: true };
+    }
+
+    // Check assigned roles bitmask for manage_server (bit 16)
+    const { data: assigned } = await admin
+      .from('server_member_roles')
+      .select('role_id')
+      .eq('server_id', serverId)
+      .eq('user_id', user.id);
+    const roleIds = (assigned ?? []).map((r: any) => r.role_id);
+    let canManage = false;
+    if (roleIds.length) {
+      const { data: roles } = await admin
+        .from('server_roles')
+        .select('permissions')
+        .in('id', roleIds);
+      canManage = (roles ?? []).some((r: any) => (Number(r.permissions) & 16) !== 0);
+    }
+    return { error: null, role, canManageServer: canManage };
+  } catch {
+    return { error: 'Unexpected error fetching membership.' };
+  }
+}
+
+export async function deleteServer(serverId: string): Promise<{ error: string | null }>{
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: 'Not signed in.' };
+    const admin = createAdminClient();
+
+    const { data: member } = await admin
+      .from('server_members')
+      .select('role')
+      .eq('server_id', serverId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (!member || (member as any).role !== 'owner') return { error: 'Only the owner can delete the server.' };
+
+    const { error } = await admin.from('servers').delete().eq('id', serverId);
+    if (error) return { error: 'Failed to delete server.' };
+    revalidatePath('/servers');
+    revalidatePath('/dashboard');
+    return { error: null };
+  } catch {
+    return { error: 'Unexpected error deleting server.' };
+  }
+}
+
 /**
  * Get user's servers
  */
@@ -417,24 +782,13 @@ export async function getUserServers(): Promise<{ error: string | null; servers?
       return { error: 'You must be signed in to view servers.' };
     }
 
-    // Use admin client to bypass RLS for server fetching
+    // Use admin client to bypass RLS
     const adminSupabase = createAdminClient();
 
-    // Get all servers and filter by user membership
-    const { data: allServers, error: allServersError } = await adminSupabase
-      .from('servers')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (allServersError) {
-      console.error('Error fetching all servers:', allServersError);
-      return { error: 'Failed to fetch servers.' };
-    }
-
-    // Get user's memberships using admin client
+    // First, fetch the user's server memberships to avoid scanning all servers
     const { data: memberships, error: membershipsError } = await adminSupabase
       .from('server_members')
-      .select('server_id, role')
+      .select('server_id')
       .eq('user_id', user.id);
 
     if (membershipsError) {
@@ -442,11 +796,24 @@ export async function getUserServers(): Promise<{ error: string | null; servers?
       return { error: 'Failed to fetch server memberships.' };
     }
 
-    // Filter servers where user is a member
-    const userServerIds = memberships?.map(m => m.server_id) || [];
-    const userServers = allServers?.filter(server => userServerIds.includes(server.id)) || [];
+    const userServerIds = (memberships ?? []).map((m: any) => m.server_id);
+    if (userServerIds.length === 0) {
+      return { error: null, servers: [] };
+    }
 
-    return { error: null, servers: userServers };
+    // Now fetch only servers that the user is a member of
+    const { data: userServers, error: serversError } = await adminSupabase
+      .from('servers')
+      .select('*')
+      .in('id', userServerIds)
+      .order('created_at', { ascending: false });
+
+    if (serversError) {
+      console.error('Error fetching user servers:', serversError);
+      return { error: 'Failed to fetch servers.' };
+    }
+
+    return { error: null, servers: userServers ?? [] };
   } catch (error) {
     console.error('Unexpected error fetching user servers:', error);
     return { error: 'An unexpected error occurred while fetching servers.' };

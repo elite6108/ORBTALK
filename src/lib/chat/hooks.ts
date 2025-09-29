@@ -8,12 +8,16 @@ import type { Message, TypingUser } from './types';
 /**
  * Hook for real-time message subscriptions
  */
-export function useChannelMessages(channelId: string) {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [channelName, setChannelName] = useState<string>('');
-  const [serverName, setServerName] = useState<string>('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export function useChannelMessages(channelId: string, initialData?: {
+  error: string | null;
+  messages?: Message[];
+  channel?: { id: string; name: string; server_id: string; server_name: string | null };
+}) {
+  const [messages, setMessages] = useState<Message[]>(initialData?.messages ?? []);
+  const [channelName, setChannelName] = useState<string>(initialData?.channel?.name ?? '');
+  const [serverName, setServerName] = useState<string>(initialData?.channel?.server_name ?? '');
+  const [loading, setLoading] = useState(!initialData || (!!initialData && initialData.messages === undefined));
+  const [error, setError] = useState<string | null>(initialData?.error ?? null);
   const supabase = createClient();
 
   const fetchMessages = useCallback(async () => {
@@ -119,7 +123,6 @@ export function useChannelMessages(channelId: string) {
     loading,
     error,
     channelName,
-    serverName,
     serverName,
     addOptimisticMessage,
     updateOptimisticMessage,

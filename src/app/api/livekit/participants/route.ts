@@ -51,11 +51,14 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const participants = list.map((p) => ({
-      id: p.identity,
-      name: nameById[p.identity] || p.name || p.identity,
-      audioEnabled: !p.muted,
-    }));
+    const participants = list.map((p) => {
+      const identity = p.identity || '';
+      return {
+        id: identity,
+        name: (identity ? nameById[identity] : undefined) || p.name || identity,
+        audioEnabled: !p.muted,
+      };
+    });
     return NextResponse.json({ participants });
   } catch (error) {
     // Log non-404 errors once to aid debugging, but do not block UI

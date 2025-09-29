@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation';
 import { AppSidebar } from '@/components/app/app-sidebar';
 import { AppHeader } from '@/components/app/app-header';
-import { VoiceDock } from '@/components/voice/voice-dock';
+import { MemberSidebar } from '@/components/app/member-sidebar';
 
 export function AppShell({ 
   user, 
@@ -20,9 +20,13 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const isServer = pathname?.startsWith('/servers/');
+  
+  // Extract server ID from pathname if not provided
+  const serverIdFromPath = pathname?.match(/^\/servers\/([^\/]+)/)?.[1];
+  const currentServerId = initialServerId || serverIdFromPath;
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen bg-[#313338]">
       <AppSidebar 
         user={user} 
         showChannels={Boolean(isServer)} 
@@ -30,11 +34,13 @@ export function AppShell({
         initialServerId={initialServerId}
         initialChannels={initialChannels}
       />
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
         <AppHeader user={user} />
-        <main className="flex-1 overflow-hidden">{children}</main>
-        <div className="px-2 py-1">
-          <VoiceDock />
+        <div className="flex-1 flex overflow-hidden">
+          <main className="flex-1 overflow-hidden">{children}</main>
+          {isServer && currentServerId && (
+            <MemberSidebar serverId={currentServerId} />
+          )}
         </div>
       </div>
     </div>

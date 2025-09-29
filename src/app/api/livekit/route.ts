@@ -56,7 +56,12 @@ export async function POST(req: NextRequest) {
     });
 
     const token = await at.toJwt();
-    return NextResponse.json({ token, url: env.LIVEKIT_URL, roomName });
+    return NextResponse.json({ 
+      token, 
+      url: env.LIVEKIT_URL, 
+      roomName,
+      channelName: channel.name 
+    });
   } catch (error) {
     console.error('LiveKit token error:', error);
     return NextResponse.json({ error: 'Failed to create token' }, { status: 500 });

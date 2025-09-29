@@ -104,24 +104,24 @@ export function MessageInput({
   }, []);
 
   return (
-    <div className="border-t border-gray-200 bg-white px-6 py-3">
+    <div className="px-4 py-3">
       {error && (
-        <div className="mb-2 text-sm text-red-600 bg-red-50 p-2 rounded">
+        <div className="mb-2 text-sm text-red-400 bg-red-900/20 p-2 rounded">
           {error}
         </div>
       )}
       
       <form
         onSubmit={handleSubmit}
-        className="flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2 shadow"
+        className="flex items-center gap-2 rounded-lg bg-[#383a40] px-4 py-2.5"
       >
         <Button
           type="button"
           variant="ghost"
           size="icon"
-          className="h-9 w-9 rounded-full text-gray-500 hover:text-gray-700"
+          className="h-9 w-9 rounded-full text-[#b5bac1] hover:text-[#dbdee1] hover:bg-[#4e5058]"
         >
-          <Paperclip className="h-4 w-4" />
+          <Paperclip className="h-5 w-5" />
         </Button>
         
         <Input
@@ -130,7 +130,7 @@ export function MessageInput({
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           placeholder={`Message #${channelName || channelId}`}
-          className="flex-1 border-0 px-1 py-0 text-sm shadow-none focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
+          className="flex-1 border-0 px-1 py-0 text-sm bg-transparent text-[#dbdee1] placeholder:text-[#87898c] shadow-none focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
           disabled={isLoading}
           maxLength={2000}
         />
@@ -139,16 +139,16 @@ export function MessageInput({
           type="button"
           variant="ghost"
           size="icon"
-          className="h-9 w-9 rounded-full text-gray-500 hover:text-gray-700"
+          className="h-9 w-9 rounded-full text-[#b5bac1] hover:text-[#dbdee1] hover:bg-[#4e5058]"
         >
-          <Smile className="h-4 w-4" />
+          <Smile className="h-5 w-5" />
         </Button>
         
         <Button
           type="submit"
           size="icon"
           disabled={!content.trim() || isLoading}
-          className="h-9 w-9 rounded-full bg-indigo-600 text-white hover:bg-indigo-700"
+          className="h-9 w-9 rounded-full bg-[#5865f2] text-white hover:bg-[#4752c4] disabled:opacity-50 disabled:hover:bg-[#5865f2]"
         >
           <Send className="h-4 w-4" />
         </Button>

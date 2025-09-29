@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { UserMenu } from '@/components/auth/user-menu';
+import { VoiceDock } from '@/components/voice/voice-dock';
 import { CreateServerDialog } from '@/components/servers/create-server-dialog';
 import { JoinServerDialog } from '@/components/servers/join-server-dialog';
 import { CreateChannelDialog } from '@/components/servers/create-channel-dialog';
@@ -66,7 +67,7 @@ function ServerButton({
 
   if (loading) {
     return (
-      <div className="w-12 h-12 rounded-full bg-gray-700 animate-pulse" />
+      <div className="w-12 h-12 rounded-full bg-[#313338] animate-pulse" />
     );
   }
 
@@ -125,8 +126,8 @@ function ServerButton({
                 size="icon"
                 className={`w-12 h-12 rounded-full text-white relative ${
                   isSelected 
-                    ? 'bg-indigo-600 hover:bg-indigo-700' 
-                    : 'bg-gray-700 hover:bg-gray-600'
+                    ? 'bg-[#5865f2] hover:bg-[#4752c4]' 
+                    : 'bg-[#313338] hover:bg-[#5865f2]'
                 }`}
                 title={server.name}
                 onClick={handleClick}
@@ -157,8 +158,8 @@ function ServerButton({
           size="icon"
           className={`w-12 h-12 rounded-full text-white relative ${
             isSelected 
-              ? 'bg-indigo-600 hover:bg-indigo-700' 
-              : 'bg-gray-700 hover:bg-gray-600'
+              ? 'bg-[#5865f2] hover:bg-[#4752c4]' 
+              : 'bg-[#313338] hover:bg-[#5865f2]'
           }`}
           title={server.name}
           onClick={handleClick}
@@ -262,56 +263,56 @@ export function AppSidebar({ user, showChannels, initialServers, initialServerId
   }, [selectedServer]);
 
   return (
-    <div className="flex h-full bg-gray-900 text-white">
+    <div className="flex h-full bg-[#2b2d31] text-[#f2f3f5]">
       {/* Server List */}
-      <div className="w-16 bg-gray-800 flex flex-col items-center py-3 space-y-2">
+      <div className="w-16 bg-[#1e1f22] flex flex-col items-center py-3 space-y-2 border-r border-black/20">
         {/* Home Button */}
         <Link href="/dashboard">
           <Button
             variant="ghost"
             size="icon"
-            className="w-12 h-12 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white"
+            className="w-12 h-12 rounded-full bg-[#5865f2] text-white hover:bg-[#4752c4] hover:rounded-2xl transition-all duration-200"
           >
             <Home className="h-6 w-6" />
           </Button>
         </Link>
         
-        <div className="w-8 h-px bg-gray-600" />
+        <div className="w-8 h-px bg-[#3f4147]" />
         
         {/* Friends Button */}
         <Link href="/friends">
           <Button
             variant="ghost"
             size="icon"
-            className="w-12 h-12 rounded-full bg-gray-700 hover:bg-gray-600 text-white"
+            className="w-12 h-12 rounded-full bg-[#313338] text-[#23a559] hover:bg-[#23a559] hover:text-white hover:rounded-2xl transition-all duration-200"
             title="Friends"
           >
             <Users className="h-6 w-6" />
           </Button>
         </Link>
 
-        <div className="w-8 h-px bg-gray-600" />
+        <div className="w-8 h-px bg-[#3f4147]" />
 
         {/* DMs Button */}
         <Link href="/dms">
           <Button
             variant="ghost"
             size="icon"
-            className="w-12 h-12 rounded-full bg-gray-700 hover:bg-gray-600 text-white"
+            className="w-12 h-12 rounded-full bg-[#313338] text-white hover:bg-[#5865f2] hover:rounded-2xl transition-all duration-200"
             title="Direct Messages"
           >
             <MessageSquare className="h-6 w-6" />
           </Button>
         </Link>
 
-        <div className="w-8 h-px bg-gray-600" />
+        <div className="w-8 h-px bg-[#3f4147]" />
 
         {/* Server Buttons */}
         {!mounted ? (
           // Show empty state during SSR to prevent hydration mismatch
           null
         ) : loading ? (
-          <div className="w-12 h-12 rounded-full bg-gray-700 animate-pulse" />
+          <div className="w-12 h-12 rounded-full bg-[#313338] animate-pulse" />
         ) : (
           servers.map((server) => (
             <ServerButton 
@@ -329,7 +330,7 @@ export function AppSidebar({ user, showChannels, initialServers, initialServerId
             <Button
               variant="ghost"
               size="icon"
-              className="w-12 h-12 rounded-full bg-gray-700 hover:bg-gray-600 text-green-500 hover:text-green-400"
+              className="w-12 h-12 rounded-full bg-[#313338] text-[#23a559] hover:bg-[#23a559] hover:text-white hover:rounded-2xl transition-all duration-200"
             >
               <Plus className="h-6 w-6" />
             </Button>
@@ -342,7 +343,7 @@ export function AppSidebar({ user, showChannels, initialServers, initialServerId
             <Button
               variant="ghost"
               size="icon"
-              className="w-12 h-12 rounded-full bg-gray-700 hover:bg-gray-600 text-yellow-400 hover:text-yellow-300"
+              className="w-12 h-12 rounded-full bg-[#313338] text-[#23a559] hover:bg-[#23a559] hover:text-white hover:rounded-2xl transition-all duration-200"
               title="Join a Server"
             >
               <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -355,14 +356,14 @@ export function AppSidebar({ user, showChannels, initialServers, initialServerId
 
       {/* Channel List */}
       {shouldShowChannels && (
-      <div className="w-60 bg-gray-800 flex flex-col">
+      <div className="w-60 bg-[#2b2d31] flex flex-col border-r border-black/20">
         {/* Server Header (click -> settings) */}
-        <div className="h-12 border-b border-gray-700 flex items-center px-4 shadow-sm">
+        <div className="h-12 border-b border-black/30 flex items-center px-4 shadow-md">
           {selectedServer ? (
             <div className="w-full">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="font-semibold text-white truncate text-left hover:underline">
+                  <button className="font-semibold text-[#f2f3f5] truncate text-left hover:underline">
                     {selectedServer.name}
                   </button>
                 </DropdownMenuTrigger>
@@ -410,27 +411,27 @@ export function AppSidebar({ user, showChannels, initialServers, initialServerId
               </DropdownMenu>
             </div>
           ) : (
-            <h2 className="font-semibold text-white truncate">Select a Server</h2>
+            <h2 className="font-semibold text-[#f2f3f5] truncate">Select a Server</h2>
           )}
         </div>
 
         {/* Channel Categories */}
         <div className="flex-1 overflow-y-auto">
           {!selectedServer ? (
-            <div className="p-4 text-center text-gray-400">
+            <div className="p-4 text-center text-[#949ba4]">
               <p>Select a server to view channels</p>
             </div>
           ) : channelsLoading && channels.length === 0 ? (
             // Keep space but avoid flashing a loading message when we have initial data
-            <div className="p-4 text-center text-gray-400 min-h-8" />
+            <div className="p-4 text-center text-[#949ba4] min-h-8" />
           ) : channels.length === 0 ? (
-            <div className="p-4 text-center text-gray-400">
+            <div className="p-4 text-center text-[#949ba4]">
               <p>No channels found</p>
             </div>
           ) : (
             <>
               <div className="px-2 pt-2 pb-3 flex items-center justify-between">
-                <div className="flex items-center text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                <div className="flex items-center text-xs font-semibold text-[#949ba4] uppercase tracking-wide">
                   <ChevronDown className="h-4 w-4 mr-1" />
                   Channels
                 </div>
@@ -442,7 +443,7 @@ export function AppSidebar({ user, showChannels, initialServers, initialServerId
               {/* Text Channels */}
               {channels.filter(c => c.type === 'text').length > 0 && (
                 <div className="px-2 py-2">
-                  <div className="flex items-center px-2 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                  <div className="flex items-center px-2 py-1 text-xs font-semibold text-[#949ba4] uppercase tracking-wide">
                     <ChevronDown className="h-4 w-4 mr-1" />
                     Text Channels
                   </div>
@@ -451,10 +452,10 @@ export function AppSidebar({ user, showChannels, initialServers, initialServerId
                       <Link
                         key={channel.id}
                         href={`/servers/${selectedServer.id}/channels/${channel.id}`}
-                        className="flex items-center justify-between px-2 py-1.5 text-gray-300 hover:text-white hover:bg-gray-700 rounded group"
+                        className="flex items-center justify-between px-2 py-1.5 text-[#949ba4] hover:text-[#dbdee1] hover:bg-[#404249] rounded group"
                       >
                         <div className="flex items-center min-w-0">
-                          <Hash className="h-4 w-4 mr-1.5 text-gray-400" />
+                          <Hash className="h-4 w-4 mr-1.5 text-[#80848e]" />
                           <span className="truncate">{channel.name}</span>
                         </div>
                         <DeleteChannelButton channelId={channel.id} serverId={selectedServer.id} onDeleted={() => fetchChannels(selectedServer.id)} />
@@ -467,7 +468,7 @@ export function AppSidebar({ user, showChannels, initialServers, initialServerId
               {/* Voice Channels */}
               {channels.filter(c => c.type === 'voice').length > 0 && (
                 <div className="px-2 py-2">
-                  <div className="flex items-center px-2 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                  <div className="flex items-center px-2 py-1 text-xs font-semibold text-[#949ba4] uppercase tracking-wide">
                     <ChevronDown className="h-4 w-4 mr-1" />
                     Voice Channels
                   </div>
@@ -476,10 +477,10 @@ export function AppSidebar({ user, showChannels, initialServers, initialServerId
                       <div key={channel.id} className="">
                         <Link
                           href={`/servers/${selectedServer.id}/channels/${channel.id}`}
-                          className="flex items-center justify-between px-2 py-1.5 text-gray-300 hover:text-white hover:bg-gray-700 rounded group"
+                          className="flex items-center justify-between px-2 py-1.5 text-[#949ba4] hover:text-[#dbdee1] hover:bg-[#404249] rounded group"
                         >
                           <div className="flex items-center min-w-0">
-                            <Volume2 className="h-4 w-4 mr-1.5 text-gray-400" />
+                            <Volume2 className="h-4 w-4 mr-1.5 text-[#80848e]" />
                             <span className="truncate">{channel.name}</span>
                           </div>
                           <DeleteChannelButton channelId={channel.id} serverId={selectedServer.id} onDeleted={() => fetchChannels(selectedServer.id)} />
@@ -495,29 +496,32 @@ export function AppSidebar({ user, showChannels, initialServers, initialServerId
           )}
         </div>
 
+        {/* Voice Dock - positioned above user info */}
+        <VoiceDock />
+
         {/* User Info */}
-        <div className="h-16 bg-gray-700 border-t border-gray-600 flex items-center px-2">
+        <div className="h-16 bg-[#232428] border-t border-black/30 flex items-center px-2">
           <div className="flex items-center space-x-2 flex-1 min-w-0">
             <Avatar className="h-8 w-8">
               <AvatarImage src={user.profile?.avatar_url || ''} alt={user.profile?.display_name || ''} />
-              <AvatarFallback className="bg-indigo-600 text-white text-xs">
+              <AvatarFallback className="bg-[#5865f2] text-white text-xs">
                 {user.profile?.display_name?.charAt(0) || user.profile?.username?.charAt(0) || 'U'}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-white truncate">
+              <div className="text-sm font-medium text-[#f2f3f5] truncate">
                 {user.profile?.display_name || user.profile?.username || 'User'}
               </div>
-              <div className="text-xs text-gray-400 truncate">
+              <div className="text-xs text-[#949ba4] truncate">
                 #{user.profile?.username || 'user'}
               </div>
             </div>
           </div>
           <div className="flex items-center space-x-1">
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white">
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-[#b5bac1] hover:text-[#dbdee1] hover:bg-[#35373c]">
               <MessageSquare className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white">
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-[#b5bac1] hover:text-[#dbdee1] hover:bg-[#35373c]">
               <Settings className="h-4 w-4" />
             </Button>
                   <UserMenu user={user} />

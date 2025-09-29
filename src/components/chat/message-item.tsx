@@ -54,7 +54,7 @@ export function MessageItem({ message, isOwn, onDelete }: MessageItemProps) {
 
   return (
     <div
-      className="group flex items-start space-x-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 p-2 rounded-lg transition-colors"
+      className="group flex items-start space-x-3 hover:bg-[#2e3035] p-2 rounded transition-colors"
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
@@ -67,14 +67,14 @@ export function MessageItem({ message, isOwn, onDelete }: MessageItemProps) {
 
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline space-x-2 mb-1">
-          <span className="font-semibold text-sm">
+          <span className="font-semibold text-sm text-[#f2f3f5]">
             {message.user?.display_name || message.user?.username || 'Unknown User'}
           </span>
-          <span className="text-xs text-muted-foreground">
+          <span className="text-xs text-[#949ba4]">
             {formatTimestamp(message.created_at)}
           </span>
           {message.edited_at && (
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-[#949ba4]">
               (edited)
             </span>
           )}
@@ -100,7 +100,7 @@ export function MessageItem({ message, isOwn, onDelete }: MessageItemProps) {
           </div>
         ) : (
           <div className="space-y-2">
-            <p className="text-sm whitespace-pre-wrap break-words">
+            <p className="text-sm whitespace-pre-wrap break-words text-[#dbdee1]">
               {message.content}
             </p>
             

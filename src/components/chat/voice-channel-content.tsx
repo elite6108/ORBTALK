@@ -19,6 +19,12 @@ export function VoiceChannelContent({ serverId, channelId }: VoiceChannelContent
   const [url, setUrl] = useState<string | null>(null);
   const [roomName, setRoomName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isSecure, setIsSecure] = useState(true); // Assume secure by default to avoid hydration mismatch
+
+  // Check secure context on mount (client-side only)
+  useEffect(() => {
+    setIsSecure(window.isSecureContext);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -61,6 +67,20 @@ export function VoiceChannelContent({ serverId, channelId }: VoiceChannelContent
   if (!token || !url || !roomName) {
     return (
       <div className="p-6 text-sm text-gray-500">Connecting to voice…</div>
+    );
+  }
+
+  // Check for secure context (HTTPS or localhost)
+  if (!isSecure) {
+    return (
+      <div className="p-6 text-center">
+        <div className="text-red-600 font-semibold mb-2">Voice Chat Unavailable</div>
+        <div className="text-sm text-gray-600">
+          Voice chat requires HTTPS or localhost access.
+          <br />
+          Please access the app via <code className="bg-gray-100 px-1 py-0.5 rounded">http://localhost</code>
+        </div>
+      </div>
     );
   }
 

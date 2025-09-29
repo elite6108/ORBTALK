@@ -2,13 +2,13 @@ import { redirect } from 'next/navigation';
 import { getFirstChannel } from '@/lib/servers/actions';
 
 interface ServerRedirectPageProps {
-  params: {
+  params: Promise<{
     serverId: string;
-  };
+  }>;
 }
 
 export default async function ServerRedirectPage({ params }: ServerRedirectPageProps) {
-  const serverId = params.serverId;
+  const { serverId } = await params;
 
   if (!serverId) {
     redirect('/servers');

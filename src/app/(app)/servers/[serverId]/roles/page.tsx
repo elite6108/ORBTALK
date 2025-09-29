@@ -21,7 +21,6 @@ export default async function RolesPage({ params }: RolesPageProps) {
   return (
     <div className="p-6">
       <h1 className="text-xl font-semibold mb-4">Server Roles</h1>
-      {/* @ts-expect-error Server Component passing to Client */}
       <RolesManager serverId={serverId} initialRoles={rolesRes.roles ?? []} />
     </div>
   );

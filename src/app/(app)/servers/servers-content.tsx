@@ -8,6 +8,7 @@ import { CreateServerDialog } from '@/components/servers/create-server-dialog';
 import { JoinServerDialog } from '@/components/servers/join-server-dialog';
 import { getUserServers } from '@/lib/servers/actions';
 import type { Server } from '@/lib/servers/types';
+import Link from 'next/link';
 import { 
   Plus, 
   Hash, 

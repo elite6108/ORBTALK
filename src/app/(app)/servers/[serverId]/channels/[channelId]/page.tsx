@@ -28,7 +28,6 @@ export default async function ChannelPage({ params }: ChannelPageProps) {
       serverId={resolvedParams.serverId} 
       channelId={resolvedParams.channelId} 
       user={{ ...user, profile }}
-      // @ts-expect-error: passing extra prop that the client component will accept after refactor
       initialData={initial}
     />
   );

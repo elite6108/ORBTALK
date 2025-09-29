@@ -10,19 +10,12 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
-  // Keep ESLint lightweight on CI to avoid missing plugin issues
+  // Minimal ESLint config for CI compatibility (avoid plugins that may not exist on Netlify image)
   ...compat.extends(
     "next/core-web-vitals",
-    "plugin:security/recommended",
     "prettier"
   ),
   {
-    plugins: ["security"],
-    rules: {
-      "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
-      "security/detect-object-injection": "off",
-      "security/detect-non-literal-regexp": "off",
-    },
     ignores: [
       "node_modules/**",
       ".next/**",

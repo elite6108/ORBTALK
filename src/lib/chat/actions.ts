@@ -77,8 +77,17 @@ export async function sendMessage(data: SendMessageData): Promise<{ error: strin
       .single();
 
     if (insertError) {
-      console.error('Error sending message:', insertError);
-      return { error: 'Failed to send message. Please try again.' };
+      console.error('Error sending message (RLS blocked?):', {
+        error: insertError,
+        code: insertError.code,
+        message: insertError.message,
+        details: insertError.details,
+        hint: insertError.hint,
+        user_id: user.id,
+        channel_id: data.channel_id,
+        server_id: channel.server_id,
+      });
+      return { error: `Failed to send message: ${insertError.message}` };
     }
 
     // Update channel's last_message_at

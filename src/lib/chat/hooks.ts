@@ -47,6 +47,7 @@ export function useChannelMessages(channelId: string, initialData?: {
   useEffect(() => {
     if (!channelId) return;
 
+    console.log('🎯 Setting up real-time for channel:', channelId);
     fetchMessages();
 
     // Subscribe to real-time message changes
@@ -121,7 +122,9 @@ export function useChannelMessages(channelId: string, initialData?: {
           setMessages(prev => prev.filter(msg => msg.id !== payload.old.id));
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('📡 Messages subscription status:', status, 'for channel:', channelId);
+      });
 
     return () => {
       supabase.removeChannel(channel);
@@ -162,20 +165,23 @@ export function useChannelMessages(channelId: string, initialData?: {
  */
 export function useTypingIndicator(channelId: string, userId: string) {
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
+  const [channel, setChannel] = useState<any>(null);
   const supabase = createClient();
 
   useEffect(() => {
     if (!channelId || !userId) return;
 
-    const channel = supabase
+    const typingChannel = supabase
       .channel(`typing:${channelId}`)
       .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState();
+        const state = typingChannel.presenceState();
         const users = Object.values(state).flat() as unknown as TypingUser[];
+        console.log('👥 Typing sync - all users:', users);
         setTypingUsers(users.filter(user => user.user_id !== userId));
       })
       .on('presence', { event: 'join' }, ({ key, newPresences }) => {
         const newUsers = newPresences as unknown as TypingUser[];
+        console.log('👥 User started typing:', newUsers);
         setTypingUsers(prev => [
           ...prev.filter(user => user.user_id !== newUsers[0]?.user_id),
           ...newUsers.filter(user => user.user_id !== userId)
@@ -183,35 +189,40 @@ export function useTypingIndicator(channelId: string, userId: string) {
       })
       .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
         const leftUsers = leftPresences as unknown as TypingUser[];
+        console.log('👥 User stopped typing:', leftUsers);
         setTypingUsers(prev => 
           prev.filter(user => !leftUsers.some(left => left.user_id === user.user_id))
         );
       })
       .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          await channel.track({
-            user_id: userId,
-            channel_id: channelId,
-            username: 'User', // This should come from user context
-            display_name: 'User',
-            avatar_url: null,
-            started_at: new Date().toISOString(),
-          });
-        }
+        console.log('👥 Typing channel status:', status);
       });
 
+    setChannel(typingChannel);
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(typingChannel);
     };
   }, [channelId, userId, supabase]);
 
   const startTyping = useCallback(() => {
-    // Typing is automatically tracked by presence
-  }, []);
+    if (!channel) return;
+    console.log('⌨️ Start typing called');
+    channel.track({
+      user_id: userId,
+      channel_id: channelId,
+      username: 'User', // This should come from user context
+      display_name: 'User',
+      avatar_url: null,
+      started_at: new Date().toISOString(),
+    });
+  }, [channel, userId, channelId]);
 
   const stopTyping = useCallback(() => {
-    // Typing is automatically tracked by presence
-  }, []);
+    if (!channel) return;
+    console.log('⌨️ Stop typing called');
+    channel.untrack();
+  }, [channel]);
 
   return {
     typingUsers,

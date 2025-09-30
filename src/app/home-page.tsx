@@ -92,7 +92,7 @@ export function HomePage({ user }: HomePageProps) {
               )}
             </nav>
           </div>
-          <UserMenu />
+          <UserMenu user={user} />
         </div>
       </header>
 
@@ -136,7 +136,7 @@ export function HomePage({ user }: HomePageProps) {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-500">
-                You haven't joined any servers yet.
+                You haven&apos;t joined any servers yet.
               </p>
             </CardContent>
           </Card>

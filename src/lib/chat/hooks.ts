@@ -65,30 +65,41 @@ export function useChannelMessages(channelId: string, initialData?: {
           console.log('🔔 Real-time: New message received', payload);
           const newMessage = payload.new as any;
           
-          // Fetch user data for the message asynchronously
+          // Add message immediately with placeholder user data
+          const tempMessage: Message = {
+            ...newMessage,
+            user: {
+              id: newMessage.user_id,
+              username: '...',
+              display_name: 'Loading...',
+              avatar_url: null,
+            }
+          };
+          
+          setMessages(prev => [...prev, tempMessage]);
+          
+          // Fetch actual user data and update
           supabase
             .from('users')
             .select('id, username, display_name, avatar_url')
             .eq('id', newMessage.user_id)
             .single()
             .then(({ data: userData }) => {
-              const messageWithUser: Message = {
-                ...newMessage,
-                user: userData ? {
-                  id: userData.id,
-                  username: userData.username,
-                  display_name: userData.display_name,
-                  avatar_url: userData.avatar_url,
-                } : {
-                  id: newMessage.user_id,
-                  username: 'Unknown',
-                  display_name: 'Unknown User',
-                  avatar_url: null,
-                }
-              };
-              
-              console.log('📥 Adding message to state:', messageWithUser);
-              setMessages(prev => [...prev, messageWithUser]);
+              if (userData) {
+                setMessages(prev => prev.map(msg => 
+                  msg.id === newMessage.id 
+                    ? {
+                        ...msg,
+                        user: {
+                          id: userData.id,
+                          username: userData.username,
+                          display_name: userData.display_name,
+                          avatar_url: userData.avatar_url,
+                        }
+                      }
+                    : msg
+                ));
+              }
             });
         }
       )

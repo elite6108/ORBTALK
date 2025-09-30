@@ -16,23 +16,23 @@ interface MessageInputProps {
   onTypingStop?: () => void;
 }
 
-export function MessageInput({ 
-  channelId, 
+export function MessageInput({
+  channelId,
   channelName,
   currentUserId,
-  onMessageSent, 
-  onTypingStart, 
-  onTypingStop 
+  onMessageSent,
+  onTypingStart,
+  onTypingStop,
 }: MessageInputProps) {
   const [content, setContent] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout>();
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!content.trim() || isLoading) return;
 
     const messageContent = content.trim();
@@ -110,7 +110,7 @@ export function MessageInput({
           {error}
         </div>
       )}
-      
+
       <form
         onSubmit={handleSubmit}
         className="flex items-center gap-2 rounded-lg bg-[#383a40] px-4 py-2.5"
@@ -123,7 +123,7 @@ export function MessageInput({
         >
           <Paperclip className="h-5 w-5" />
         </Button>
-        
+
         <Input
           ref={inputRef}
           value={content}
@@ -134,7 +134,7 @@ export function MessageInput({
           disabled={isLoading}
           maxLength={2000}
         />
-        
+
         <Button
           type="button"
           variant="ghost"
@@ -143,7 +143,7 @@ export function MessageInput({
         >
           <Smile className="h-5 w-5" />
         </Button>
-        
+
         <Button
           type="submit"
           size="icon"
@@ -153,7 +153,6 @@ export function MessageInput({
           <Send className="h-4 w-4" />
         </Button>
       </form>
-      
     </div>
   );
 }

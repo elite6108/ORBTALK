@@ -1,6 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import { getPublicEnv, getServerEnv } from '../env';
+import { publicEnv, getServerEnv } from '../env';
 
 /**
  * Supabase client for server-side operations
@@ -8,11 +8,10 @@ import { getPublicEnv, getServerEnv } from '../env';
  */
 export async function createClient() {
   const cookieStore = await cookies();
-  const env = getPublicEnv();
   
   return createServerClient(
-    env.NEXT_PUBLIC_SUPABASE_URL,
-    env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    publicEnv.NEXT_PUBLIC_SUPABASE_URL,
+    publicEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: {
         getAll() {
@@ -40,7 +39,6 @@ export async function createClient() {
  * Use with extreme caution - only for admin operations
  */
 export function createAdminClient() {
-  const publicEnv = getPublicEnv();
   const serverEnv = getServerEnv();
   
   return createServerClient(

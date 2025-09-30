@@ -1,14 +1,12 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
-import { getPublicEnv } from '../env';
+import { publicEnv } from '../env';
 
 /**
  * Supabase client for middleware operations
  * Handles session refresh and authentication state
  */
 export function createClient(request: NextRequest) {
-  const env = getPublicEnv();
-  
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -16,8 +14,8 @@ export function createClient(request: NextRequest) {
   });
 
   const supabase = createServerClient(
-    env.NEXT_PUBLIC_SUPABASE_URL,
-    env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    publicEnv.NEXT_PUBLIC_SUPABASE_URL,
+    publicEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: {
         getAll() {

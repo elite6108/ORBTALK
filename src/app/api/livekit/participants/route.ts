@@ -24,8 +24,8 @@ export async function POST(req: NextRequest) {
     }
     const roomName = `${serverId}:${channelId}`;
     const serverEnv = getServerEnv();
-    const livekitUrl = process.env.LIVEKIT_URL || 'wss://orbit-ltax36qn.livekit.cloud';
-    const baseUrl = toHttpUrl(livekitUrl);
+    const livekitUrl = process.env.LIVEKIT_URL;
+    const baseUrl = toHttpUrl(livekitUrl || '');
 
     const client = new RoomServiceClient(baseUrl, serverEnv.LIVEKIT_API_KEY, serverEnv.LIVEKIT_API_SECRET);
     let list: Array<{ identity?: string; muted?: boolean; name?: string }> = [];

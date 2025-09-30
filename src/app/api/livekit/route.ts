@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
     const token = await at.toJwt();
     return NextResponse.json({ 
       token, 
-      url: process.env.LIVEKIT_URL || 'wss://orbit-ltax36qn.livekit.cloud', 
+      url: process.env.LIVEKIT_URL, 
       roomName,
       channelName: channel.name 
     });

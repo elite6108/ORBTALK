@@ -45,15 +45,12 @@ const parseServerEnv = (): z.infer<typeof serverEnvSchema> => {
   }
 
   try {
-    const isProduction = process.env.NODE_ENV === 'production';
-    const source = isProduction
-      ? process.env
-      : {
-          SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || 'your-service-role-key-here',
-          LIVEKIT_API_KEY: process.env.LIVEKIT_API_KEY || 'APIqU9BiCrs5x46',
-          LIVEKIT_API_SECRET: process.env.LIVEKIT_API_SECRET || '4n6O0ZGHJimsQfp648HyF1eJfUsNA7xXqpMvIW7WmqoA',
-          NODE_ENV: process.env.NODE_ENV || 'development',
-        };
+    const source = {
+      SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+      LIVEKIT_API_KEY: process.env.LIVEKIT_API_KEY,
+      LIVEKIT_API_SECRET: process.env.LIVEKIT_API_SECRET,
+      NODE_ENV: (process.env.NODE_ENV as 'development' | 'production' | 'test') || 'development',
+    };
 
     return serverEnvSchema.parse(source);
   } catch (error) {

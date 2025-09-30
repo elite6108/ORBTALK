@@ -60,33 +60,35 @@ export function useChannelMessages(channelId: string, initialData?: {
           table: 'messages',
           filter: `channel_id=eq.${channelId}`,
         },
-        async (payload) => {
-          console.log('New message received:', payload);
+        (payload) => {
+          console.log('🔔 Real-time: New message received', payload);
           const newMessage = payload.new as any;
           
-          // Fetch user data for the message
-          const { data: userData } = await supabase
+          // Fetch user data for the message asynchronously
+          supabase
             .from('users')
             .select('id, username, display_name, avatar_url')
             .eq('id', newMessage.user_id)
-            .single();
-          
-          const messageWithUser: Message = {
-            ...newMessage,
-            user: userData ? {
-              id: userData.id,
-              username: userData.username,
-              display_name: userData.display_name,
-              avatar_url: userData.avatar_url,
-            } : {
-              id: newMessage.user_id,
-              username: 'Unknown',
-              display_name: 'Unknown User',
-              avatar_url: null,
-            }
-          };
-          
-          setMessages(prev => [...prev, messageWithUser]);
+            .single()
+            .then(({ data: userData }) => {
+              const messageWithUser: Message = {
+                ...newMessage,
+                user: userData ? {
+                  id: userData.id,
+                  username: userData.username,
+                  display_name: userData.display_name,
+                  avatar_url: userData.avatar_url,
+                } : {
+                  id: newMessage.user_id,
+                  username: 'Unknown',
+                  display_name: 'Unknown User',
+                  avatar_url: null,
+                }
+              };
+              
+              console.log('📥 Adding message to state:', messageWithUser);
+              setMessages(prev => [...prev, messageWithUser]);
+            });
         }
       )
       .on(

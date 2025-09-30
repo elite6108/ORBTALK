@@ -55,8 +55,8 @@ export async function sendMessage(data: SendMessageData): Promise<{ error: strin
       return { error: 'You are not a member of this server.' };
     }
 
-    // Insert message using admin client to bypass RLS recursion
-    const { data: message, error: insertError } = await adminSupabase
+    // Insert message using regular client so real-time triggers
+    const { data: message, error: insertError } = await supabase
       .from('messages')
       .insert({
         channel_id: data.channel_id,
@@ -82,7 +82,7 @@ export async function sendMessage(data: SendMessageData): Promise<{ error: strin
     }
 
     // Update channel's last_message_at
-    await adminSupabase
+    await supabase
       .from('channels')
       .update({ 
         last_message_at: new Date().toISOString(),

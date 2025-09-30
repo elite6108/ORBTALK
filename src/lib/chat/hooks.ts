@@ -138,7 +138,6 @@ export function useChannelMessages(channelId: string, initialData?: {
       });
 
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
       supabase.removeChannel(channel);
     };
   }, [channelId, supabase, fetchMessages]);

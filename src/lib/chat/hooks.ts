@@ -145,18 +145,18 @@ export function useTypingIndicator(channelId: string, userId: string) {
       .channel(`typing:${channelId}`)
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState();
-        const users = Object.values(state).flat() as TypingUser[];
+        const users = Object.values(state).flat() as unknown as TypingUser[];
         setTypingUsers(users.filter(user => user.user_id !== userId));
       })
       .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-        const newUsers = newPresences as TypingUser[];
+        const newUsers = newPresences as unknown as TypingUser[];
         setTypingUsers(prev => [
           ...prev.filter(user => user.user_id !== newUsers[0]?.user_id),
           ...newUsers.filter(user => user.user_id !== userId)
         ]);
       })
       .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-        const leftUsers = leftPresences as TypingUser[];
+        const leftUsers = leftPresences as unknown as TypingUser[];
         setTypingUsers(prev => 
           prev.filter(user => !leftUsers.some(left => left.user_id === user.user_id))
         );

@@ -24,9 +24,8 @@ export function ChannelContent({ serverId, channelId, user, initialData }: Chann
   const { typingUsers, startTyping, stopTyping } = useTypingIndicator(channelId, user.id);
 
   const handleMessageSent = (message: any) => {
-    if (message) {
-      addOptimisticMessage(message);
-    }
+    // Don't add optimistically - real-time will handle it
+    // The message will appear instantly via the real-time subscription
   };
 
   if (error) {

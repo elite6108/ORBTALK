@@ -50,9 +50,24 @@ export function useChannelMessages(channelId: string, initialData?: {
     console.log('🎯 Setting up real-time for channel:', channelId);
     fetchMessages();
 
+    // Handle page visibility changes (important for mobile)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('📱 Page visible - refreshing messages');
+        fetchMessages();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     // Subscribe to real-time message changes
     const channel = supabase
-      .channel(`messages:${channelId}`)
+      .channel(`messages:${channelId}`, {
+        config: {
+          broadcast: { self: true },
+          presence: { key: '' },
+        },
+      })
       .on(
         'postgres_changes',
         {
@@ -138,6 +153,7 @@ export function useChannelMessages(channelId: string, initialData?: {
       });
 
     return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       supabase.removeChannel(channel);
     };
   }, [channelId, supabase, fetchMessages]);

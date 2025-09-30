@@ -22,15 +22,13 @@ const publicEnvSchema = z.object({
 // Validate public environment variables (runs on both client and server)
 const parsePublicEnv = (): z.infer<typeof publicEnvSchema> => {
   try {
-    const isProduction = process.env.NODE_ENV === 'production';
-    const source = isProduction
-      ? process.env
-      : {
-          NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://yoowbxaglfmconicaqsu.supabase.co',
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlvb3dieGFnbGZtY29uaWNhcXN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg1MTEwMzUsImV4cCI6MjA3NDA4NzAzNX0.vd8eXB0c0tPJGkFl_LT3rfj9lJBCHpdfWY5X_-v0LNA',
-          LIVEKIT_URL: process.env.LIVEKIT_URL || 'wss://orbit-ltax36qn.livekit.cloud',
-          NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-        };
+    // Direct reference to process.env variables so Next.js can inline them at build time
+    const source = {
+      NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      LIVEKIT_URL: process.env.LIVEKIT_URL,
+      NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+    };
 
     return publicEnvSchema.parse(source);
   } catch (error) {

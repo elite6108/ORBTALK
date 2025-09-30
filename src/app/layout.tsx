@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Orbit - Discord-style Chat",
-  description: "A modern Discord-style chat application with real-time messaging and voice channels",
+  title: "Orbit - Your Premiere Communication Platform",
+  description: "A modern communication platform with real-time messaging, voice channels, and seamless collaboration",
 };
 
 export default function RootLayout({

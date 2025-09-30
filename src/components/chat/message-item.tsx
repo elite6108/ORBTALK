@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 // import { formatDistanceToNow } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,7 @@ export function MessageItem({ message, isOwn, onDelete }: MessageItemProps) {
   const [showActions, setShowActions] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
+  const [formattedTime, setFormattedTime] = useState('');
 
   const formatTimestamp = (timestamp: string) => {
     const now = new Date();
@@ -32,6 +33,18 @@ export function MessageItem({ message, isOwn, onDelete }: MessageItemProps) {
     if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
     return `${Math.floor(diffInSeconds / 86400)}d ago`;
   };
+
+  // Format timestamp on client-side only to avoid hydration mismatch
+  useEffect(() => {
+    setFormattedTime(formatTimestamp(message.created_at));
+    
+    // Update every minute for relative time
+    const interval = setInterval(() => {
+      setFormattedTime(formatTimestamp(message.created_at));
+    }, 60000);
+    
+    return () => clearInterval(interval);
+  }, [message.created_at]);
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -71,7 +84,7 @@ export function MessageItem({ message, isOwn, onDelete }: MessageItemProps) {
             {message.user?.display_name || message.user?.username || 'Unknown User'}
           </span>
           <span className="text-xs text-[#949ba4]">
-            {formatTimestamp(message.created_at)}
+            {formattedTime || 'Loading...'}
           </span>
           {message.edited_at && (
             <span className="text-xs text-[#949ba4]">

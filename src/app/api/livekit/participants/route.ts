@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { RoomServiceClient } from 'livekit-server-sdk';
-import { env } from '@/lib/env';
+import { getServerEnv } from '@/lib/env';
 import { createAdminClient } from '@/lib/supabase/server';
 
 function toHttpUrl(wsUrl: string): string {
@@ -23,9 +23,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing serverId or channelId' }, { status: 400 });
     }
     const roomName = `${serverId}:${channelId}`;
-    const baseUrl = toHttpUrl(env.LIVEKIT_URL);
+    const serverEnv = getServerEnv();
+    const livekitUrl = process.env.LIVEKIT_URL || 'wss://orbit-ltax36qn.livekit.cloud';
+    const baseUrl = toHttpUrl(livekitUrl);
 
-    const client = new RoomServiceClient(baseUrl, env.LIVEKIT_API_KEY, env.LIVEKIT_API_SECRET);
+    const client = new RoomServiceClient(baseUrl, serverEnv.LIVEKIT_API_KEY, serverEnv.LIVEKIT_API_SECRET);
     let list: Array<{ identity?: string; muted?: boolean; name?: string }> = [];
     try {
       list = await client.listParticipants(roomName);

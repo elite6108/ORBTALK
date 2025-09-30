@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+// Helper to check if we're on the server
+const isServer = typeof window === 'undefined';
+
 // Server-only environment variables
 const serverEnvSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, 'SUPABASE_SERVICE_ROLE_KEY is required'),
@@ -16,67 +19,71 @@ const publicEnvSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.string().url('NEXT_PUBLIC_APP_URL must be a valid URL'),
 });
 
-// Combined schema for validation
-const envSchema = serverEnvSchema.merge(publicEnvSchema);
-
-// Validate environment variables
-const parseEnv = (): z.infer<typeof envSchema> => {
+// Validate public environment variables (runs on both client and server)
+const parsePublicEnv = (): z.infer<typeof publicEnvSchema> => {
   try {
     const isProduction = process.env.NODE_ENV === 'production';
-    // In production, do NOT provide any fallbacks. Require real env vars.
-    // In development, provide convenient fallbacks so the app runs locally.
     const source = isProduction
       ? process.env
       : {
-          ...process.env,
-          // Development fallbacks only
-          SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || 'your-service-role-key-here',
           NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://yoowbxaglfmconicaqsu.supabase.co',
           NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlvb3dieGFnbGZtY29uaWNhcXN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg1MTEwMzUsImV4cCI6MjA3NDA4NzAzNX0.vd8eXB0c0tPJGkFl_LT3rfj9lJBCHpdfWY5X_-v0LNA',
           LIVEKIT_URL: process.env.LIVEKIT_URL || 'wss://orbit-ltax36qn.livekit.cloud',
-          LIVEKIT_API_KEY: process.env.LIVEKIT_API_KEY || 'APIqU9BiCrs5x46',
-          LIVEKIT_API_SECRET: process.env.LIVEKIT_API_SECRET || '4n6O0ZGHJimsQfp648HyF1eJfUsNA7xXqpMvIW7WmqoA',
           NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
         };
 
-    return envSchema.parse(source);
+    return publicEnvSchema.parse(source);
   } catch (error) {
     if (error instanceof z.ZodError) {
       const missingVars = error.issues.map((err) => `${err.path.join('.')}: ${err.message}`);
-      throw new Error(`Environment validation failed:\n${missingVars.join('\n')}`);
+      throw new Error(`Public environment validation failed:\n${missingVars.join('\n')}`);
     }
     throw error;
   }
 };
 
-// Export validated environment variables
-export const env = parseEnv();
+// Validate server environment variables (only runs on server)
+const parseServerEnv = (): z.infer<typeof serverEnvSchema> => {
+  if (!isServer) {
+    throw new Error('Server environment validation should only run on the server');
+  }
 
-// Type-safe environment variable access
-export type Env = z.infer<typeof envSchema>;
+  try {
+    const isProduction = process.env.NODE_ENV === 'production';
+    const source = isProduction
+      ? process.env
+      : {
+          SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || 'your-service-role-key-here',
+          LIVEKIT_API_KEY: process.env.LIVEKIT_API_KEY || 'APIqU9BiCrs5x46',
+          LIVEKIT_API_SECRET: process.env.LIVEKIT_API_SECRET || '4n6O0ZGHJimsQfp648HyF1eJfUsNA7xXqpMvIW7WmqoA',
+          NODE_ENV: process.env.NODE_ENV || 'development',
+        };
 
-// Helper to check if we're on the server
-export const isServer = (): boolean => typeof window === 'undefined';
+    return serverEnvSchema.parse(source);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      const missingVars = error.issues.map((err) => `${err.path.join('.')}: ${err.message}`);
+      throw new Error(`Server environment validation failed:\n${missingVars.join('\n')}`);
+    }
+    throw error;
+  }
+};
 
-// Helper to get server-only env vars (throws on client)
+// Export validated public environment variables (safe for client)
+export const publicEnv = parsePublicEnv();
+
+// Lazy-loaded server environment (only validated when accessed on server)
+let serverEnvCache: z.infer<typeof serverEnvSchema> | null = null;
 export const getServerEnv = (): z.infer<typeof serverEnvSchema> => {
-  if (!isServer()) {
+  if (!isServer) {
     throw new Error('Server environment variables cannot be accessed on the client');
   }
-  return {
-    SUPABASE_SERVICE_ROLE_KEY: env.SUPABASE_SERVICE_ROLE_KEY,
-    LIVEKIT_API_KEY: env.LIVEKIT_API_KEY,
-    LIVEKIT_API_SECRET: env.LIVEKIT_API_SECRET,
-    NODE_ENV: env.NODE_ENV,
-  };
+  if (!serverEnvCache) {
+    serverEnvCache = parseServerEnv();
+  }
+  return serverEnvCache;
 };
 
-// Helper to get public env vars (safe for client)
-export const getPublicEnv = (): z.infer<typeof publicEnvSchema> => {
-  return {
-    NEXT_PUBLIC_SUPABASE_URL: env.NEXT_PUBLIC_SUPABASE_URL,
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    LIVEKIT_URL: env.LIVEKIT_URL,
-    NEXT_PUBLIC_APP_URL: env.NEXT_PUBLIC_APP_URL,
-  };
-};
+// Type-safe environment variable access
+export type PublicEnv = z.infer<typeof publicEnvSchema>;
+export type ServerEnv = z.infer<typeof serverEnvSchema>;

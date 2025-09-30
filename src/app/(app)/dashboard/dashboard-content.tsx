@@ -186,7 +186,7 @@ export function DashboardContent({ user, initialStats, initialTasks, initialActi
               <div className="p-4 space-y-2">
                 {tasks.length === 0 ? (
                   <div className="text-center py-12 text-[#949ba4]">
-                    No active tasks. You're all caught up!
+                    No active tasks. You&apos;re all caught up!
                   </div>
                 ) : (
                   tasks.map((task: any) => (

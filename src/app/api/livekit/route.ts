@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { AccessToken } from 'livekit-server-sdk';
 import { getCurrentUserAction } from '@/lib/auth/server-actions';
 import { createAdminClient } from '@/lib/supabase/server';
-import { env } from '@/lib/env';
+import { getServerEnv } from '@/lib/env';
 
 export async function POST(req: NextRequest) {
   try {
@@ -44,7 +44,8 @@ export async function POST(req: NextRequest) {
 
     const roomName = `${serverId}:${channelId}`;
 
-    const at = new AccessToken(env.LIVEKIT_API_KEY, env.LIVEKIT_API_SECRET, {
+    const serverEnv = getServerEnv();
+    const at = new AccessToken(serverEnv.LIVEKIT_API_KEY, serverEnv.LIVEKIT_API_SECRET, {
       identity: userData.user.id,
       ttl: '1h',
     });
@@ -58,7 +59,7 @@ export async function POST(req: NextRequest) {
     const token = await at.toJwt();
     return NextResponse.json({ 
       token, 
-      url: env.LIVEKIT_URL, 
+      url: process.env.LIVEKIT_URL || 'wss://orbit-ltax36qn.livekit.cloud', 
       roomName,
       channelName: channel.name 
     });
